@@ -4,12 +4,16 @@ const API_BASE_URL = 'http://localhost:5000/api';
 class AdminService {
   // Get auth token from localStorage
   getAuthToken() {
-    return localStorage.getItem('firebaseToken');
+    // For admin, use adminToken (JWT), not firebaseToken
+    return localStorage.getItem('adminToken');
   }
 
   // Get auth headers
   getAuthHeaders() {
     const token = this.getAuthToken();
+    if (!token) {
+      throw new Error('Admin not authenticated. Please log in again.');
+    }
     return {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`

@@ -13,18 +13,18 @@ const CreateWorkerModal = ({ worker, onClose, onSuccess }) => {
     confirmPassword: '',
     address: {
       street: worker?.address?.street || '',
-      city: worker?.address?.city || 'Elangulam',
+      city: worker?.address?.city || '',
       state: worker?.address?.state || 'Kerala',
-      pincode: worker?.address?.pincode || '686522',
+      pincode: worker?.address?.pincode || '',
       district: worker?.address?.district || 'Kottayam',
       block: worker?.address?.block || ''
     },
     roleSpecificData: {
       anganwadiCenter: {
-        name: worker?.roleSpecificData?.anganwadiCenter?.name || 'Akkarakunnu',
-        code: worker?.roleSpecificData?.anganwadiCenter?.code || 'AWC-AKK-001',
+        name: worker?.roleSpecificData?.anganwadiCenter?.name || '',
+        code: worker?.roleSpecificData?.anganwadiCenter?.code || '',
         district: worker?.roleSpecificData?.anganwadiCenter?.district || 'Kottayam',
-        block: worker?.roleSpecificData?.anganwadiCenter?.block || 'Elangulam'
+        block: worker?.roleSpecificData?.anganwadiCenter?.block || ''
       },
       ashaArea: {
         villages: worker?.roleSpecificData?.ashaArea?.villages || [''],
@@ -283,6 +283,23 @@ const CreateWorkerModal = ({ worker, onClose, onSuccess }) => {
     }
   };
 
+  const anganwadiCenters = [
+    {
+      name: 'Akkarakunnu Anganwadi Center',
+      code: 'AK-KC969',
+      location: 'Elangulam, Kottayam, Kerala',
+      city: 'Elangulam',
+      pincode: '686522'
+    },
+    {
+      name: 'Veliyanoor Anganwadi Center',
+      code: 'AK-VL969',
+      location: 'Veliyanoor, Kottayam, Kerala',
+      city: 'Veliyanoor',
+      pincode: '686522'
+    }
+  ];
+
   const renderRoleSpecificFields = () => {
     try {
       switch (formData.role) {
@@ -296,18 +313,39 @@ const CreateWorkerModal = ({ worker, onClose, onSuccess }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Center Name
+                  Select Center
                 </label>
-                <input
-                  type="text"
+                <select
                   name="roleSpecificData.anganwadiCenter.name"
-                  value={formData.roleSpecificData?.anganwadiCenter?.name || 'Akkarakunnu'}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  placeholder="Enter center name"
-                  readOnly
-                />
-                <p className="text-xs text-gray-500 mt-1">Default center for this system</p>
+                  value={formData.roleSpecificData?.anganwadiCenter?.name || ''}
+                  onChange={(e) => {
+                    const selectedCenter = anganwadiCenters.find(center => center.name === e.target.value);
+                    if (selectedCenter) {
+                      // Update both center details and address fields
+                      setFormData(prev => ({
+                        ...prev,
+                        roleSpecificData: {
+                          ...prev.roleSpecificData,
+                          anganwadiCenter: selectedCenter
+                        },
+                        address: {
+                          ...prev.address,
+                          city: selectedCenter.city,
+                          pincode: selectedCenter.pincode
+                        }
+                      }));
+                    }
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  required
+                >
+                  <option value="">Select a center</option>
+                  {anganwadiCenters.map((center) => (
+                    <option key={center.code} value={center.name}>
+                      {center.name}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -316,15 +354,27 @@ const CreateWorkerModal = ({ worker, onClose, onSuccess }) => {
                 <input
                   type="text"
                   name="roleSpecificData.anganwadiCenter.code"
-                  value={formData.roleSpecificData?.anganwadiCenter?.code || 'AWC-AKK-001'}
-                  onChange={handleChange}
+                  value={formData.roleSpecificData?.anganwadiCenter?.code || ''}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  placeholder="e.g., AWC001"
+                  placeholder="Auto-generated"
                   readOnly
                 />
-                <p className="text-xs text-gray-500 mt-1">Auto-generated code</p>
+                <p className="text-xs text-gray-500 mt-1">Auto-generated based on selection</p>
               </div>
             </div>
+            {formData.roleSpecificData?.anganwadiCenter?.location && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Location
+                </label>
+                <input
+                  type="text"
+                  value={formData.roleSpecificData.anganwadiCenter.location}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
+                  readOnly
+                />
+              </div>
+            )}
           </div>
         );
 
@@ -686,11 +736,10 @@ const CreateWorkerModal = ({ worker, onClose, onSuccess }) => {
                     name="address.city"
                     value={formData.address.city}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     placeholder="Enter city"
-                    readOnly
                   />
-                  <p className="text-xs text-gray-500 mt-1">Default city for this Anganwadi</p>
+                  <p className="text-xs text-gray-500 mt-1">Auto-filled based on Anganwadi center selection</p>
                 </div>
                 
                 <div>
@@ -734,11 +783,12 @@ const CreateWorkerModal = ({ worker, onClose, onSuccess }) => {
                     name="address.pincode"
                     value={formData.address.pincode}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     placeholder="Enter pincode"
-                    readOnly
+                    maxLength="6"
+                    pattern="[0-9]{6}"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Default pincode for this Anganwadi</p>
+                  <p className="text-xs text-gray-500 mt-1">Auto-filled based on Anganwadi center selection</p>
                 </div>
               </div>
             </div>

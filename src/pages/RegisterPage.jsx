@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Baby, User, Mail, Lock, Eye, EyeOff, MapPin, Phone, Users, Heart, GraduationCap, UserCheck, Trash2, Shield } from 'lucide-react';
+import { Baby, User, Mail, Lock, Eye, EyeOff, MapPin, Phone, Users, Heart, GraduationCap, UserCheck, Trash2, Shield, CheckCircle, AlertCircle } from 'lucide-react';
 import authService from '../services/authService';
 import GoogleSignIn from '../components/auth/GoogleSignIn';
 
@@ -33,6 +33,9 @@ const RegisterPage = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({});
+  const [isFormValid, setIsFormValid] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   // Only allow self-registration for parents and adolescent girls
   // Other roles (workers) are managed by admin
@@ -58,8 +61,14 @@ const RegisterPage = () => {
   const anganwadiCenters = [
     {
       name: 'Akkarakunnu Anganwadi Center',
-      code: 'AW34',
+      code: 'AK34',
       location: 'Elangulam, Kottayam, Kerala',
+      pincode: '686522'
+    },
+    {
+      name: 'Veliyanoor Anganwadi Center',
+      code: 'AK35',
+      location: 'Veliyanoor, Kottayam, Kerala',
       pincode: '686522'
     }
   ];
@@ -85,15 +94,107 @@ const RegisterPage = () => {
     setError(errorMessage);
   };
 
+  // Validation functions
+  const validateField = (name, value) => {
+    const errors = {};
+
+    switch (name) {
+      case 'name':
+        if (!value.trim()) {
+          errors.name = 'Full name is required';
+        } else if (value.trim().length < 3) {
+          errors.name = 'Name must be at least 3 characters long';
+        } else if (!/^[a-zA-Z\s]+$/.test(value.trim())) {
+          errors.name = 'Name can only contain letters and spaces';
+        }
+        break;
+
+      case 'email':
+        if (!value.trim()) {
+          errors.email = 'Email address is required';
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())) {
+          errors.email = 'Please enter a valid email address';
+        }
+        break;
+
+      case 'phone':
+        if (!value.trim()) {
+          errors.phone = 'Phone number is required';
+        } else if (!/^\d{10}$/.test(value.trim())) {
+          errors.phone = 'Phone number must be exactly 10 digits';
+        } else if (value.trim() === '0000000000') {
+          errors.phone = 'Phone number cannot be all zeros';
+        }
+        break;
+
+      case 'pincode':
+        if (!value.trim()) {
+          errors.pincode = 'Pincode is required';
+        } else if (!/^\d{6}$/.test(value.trim())) {
+          errors.pincode = 'Pincode must be exactly 6 digits';
+        }
+        break;
+
+      case 'password':
+        if (!value) {
+          errors.password = 'Password is required';
+        } else if (value.length < 8) {
+          errors.password = 'Password must be at least 8 characters long';
+        } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/.test(value)) {
+          errors.password = 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character';
+        }
+        break;
+
+      case 'confirmPassword':
+        if (!value) {
+          errors.confirmPassword = 'Please confirm your password';
+        } else if (value !== formData.password) {
+          errors.confirmPassword = 'Passwords do not match';
+        }
+        break;
+
+      default:
+        break;
+    }
+
+    return errors;
+  };
+
+  const validateForm = () => {
+    const requiredFields = ['name', 'email', 'phone', 'pincode', 'password', 'confirmPassword'];
+    let allErrors = {};
+
+    requiredFields.forEach(field => {
+      const fieldErrors = validateField(field, formData[field]);
+      allErrors = { ...allErrors, ...fieldErrors };
+    });
+
+    // Check terms acceptance
+    if (!termsAccepted) {
+      allErrors.terms = 'You must accept the Terms & Conditions';
+    }
+
+    setValidationErrors(allErrors);
+    const isValid = Object.keys(allErrors).length === 0;
+    setIsFormValid(isValid);
+    return isValid;
+  };
+
+  // Real-time validation effect
+  useEffect(() => {
+    validateForm();
+  }, [formData, termsAccepted]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-    
+
     try {
-      // Validate password match
-      if (formData.password !== formData.confirmPassword) {
-        setError('Passwords do not match!');
+      // Validate form before submission
+      if (!validateForm()) {
+        setError('Please fix all validation errors before submitting');
+        setIsLoading(false);
         return;
       }
 
@@ -181,10 +282,10 @@ const RegisterPage = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
+
     // Format specific fields
     let formattedValue = value;
-    
+
     if (name === 'pincode') {
       // Only allow numbers and limit to 6 digits
       formattedValue = value.replace(/\D/g, '').slice(0, 6);
@@ -192,11 +293,22 @@ const RegisterPage = () => {
       // Only allow numbers and limit to 10 digits
       formattedValue = value.replace(/\D/g, '').slice(0, 10);
     }
-    
-    setFormData({
+
+    // Update form data
+    const newFormData = {
       ...formData,
       [name]: formattedValue
-    });
+    };
+    setFormData(newFormData);
+
+    // Real-time validation for the changed field
+    const fieldErrors = validateField(name, formattedValue);
+    setValidationErrors(prev => ({
+      ...prev,
+      ...fieldErrors,
+      // Remove error if field is now valid
+      ...(Object.keys(fieldErrors).length === 0 && { [name]: undefined })
+    }));
   };
 
   const renderRoleSpecificFields = () => {
@@ -467,15 +579,20 @@ const RegisterPage = () => {
                 {/* Error Message */}
                 {error && (
                   <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <p className="text-red-600 text-sm">{error}</p>
+                    <div className="flex items-center">
+                      <AlertCircle className="w-5 h-5 text-red-500 mr-2" />
+                      <p className="text-red-600 text-sm">{error}</p>
+                    </div>
                   </div>
                 )}
+
+
 
                 {/* Basic Information */}
                 <div className="grid md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-black mb-2">
-                      Full Name
+                      Full Name *
                     </label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
@@ -484,16 +601,29 @@ const RegisterPage = () => {
                         name="name"
                         value={formData.name}
                         onChange={handleChange}
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-black"
+                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-black ${
+                          validationErrors.name ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                        }`}
                         placeholder="Enter your full name"
                         required
                       />
+                      {validationErrors.name && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                          <AlertCircle className="w-5 h-5 text-red-500" />
+                        </div>
+                      )}
                     </div>
+                    {validationErrors.name && (
+                      <p className="mt-1 text-sm text-red-600 flex items-center">
+                        <AlertCircle className="w-4 h-4 mr-1" />
+                        {validationErrors.name}
+                      </p>
+                    )}
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-black mb-2">
-                      Email Address
+                      Email Address *
                     </label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
@@ -502,18 +632,31 @@ const RegisterPage = () => {
                         name="email"
                         value={formData.email}
                         onChange={handleChange}
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-black"
+                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-black ${
+                          validationErrors.email ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                        }`}
                         placeholder="Enter your email"
                         required
                       />
+                      {validationErrors.email && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                          <AlertCircle className="w-5 h-5 text-red-500" />
+                        </div>
+                      )}
                     </div>
+                    {validationErrors.email && (
+                      <p className="mt-1 text-sm text-red-600 flex items-center">
+                        <AlertCircle className="w-4 h-4 mr-1" />
+                        {validationErrors.email}
+                      </p>
+                    )}
                   </div>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-black mb-2">
-                      Phone Number
+                      Phone Number *
                     </label>
                     <div className="relative">
                       <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
@@ -522,11 +665,24 @@ const RegisterPage = () => {
                         name="phone"
                         value={formData.phone}
                         onChange={handleChange}
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-black"
+                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-black ${
+                          validationErrors.phone ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                        }`}
                         placeholder="Enter your phone number"
                         required
                       />
+                      {validationErrors.phone && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                          <AlertCircle className="w-5 h-5 text-red-500" />
+                        </div>
+                      )}
                     </div>
+                    {validationErrors.phone && (
+                      <p className="mt-1 text-sm text-red-600 flex items-center">
+                        <AlertCircle className="w-4 h-4 mr-1" />
+                        {validationErrors.phone}
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -550,7 +706,7 @@ const RegisterPage = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-black mb-2">
-                    Pincode
+                    Pincode *
                   </label>
                   <div className="relative">
                     <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
@@ -559,14 +715,28 @@ const RegisterPage = () => {
                       name="pincode"
                       value={formData.pincode}
                       onChange={handleChange}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-black"
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-black ${
+                        validationErrors.pincode ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                      }`}
                       placeholder="Enter 6-digit pincode"
                       pattern="[0-9]{6}"
                       maxLength="6"
                       required
                     />
+                    {validationErrors.pincode && (
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                        <AlertCircle className="w-5 h-5 text-red-500" />
+                      </div>
+                    )}
                   </div>
-                  <p className="text-sm text-gray-500 mt-1">Please enter a valid 6-digit pincode</p>
+                  {validationErrors.pincode ? (
+                    <p className="mt-1 text-sm text-red-600 flex items-center">
+                      <AlertCircle className="w-4 h-4 mr-1" />
+                      {validationErrors.pincode}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-gray-500 mt-1">Please enter a valid 6-digit pincode</p>
+                  )}
                 </div>
 
                 {selectedRole !== 'adolescent-girl' && (
@@ -596,7 +766,7 @@ const RegisterPage = () => {
                 <div className="grid md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-black mb-2">
-                      Password
+                      Password *
                     </label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
@@ -605,23 +775,36 @@ const RegisterPage = () => {
                         name="password"
                         value={formData.password}
                         onChange={handleChange}
-                        className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-black"
+                        className={`w-full pl-10 pr-10 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-black ${
+                          validationErrors.password ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                        }`}
                         placeholder="Create a password"
                         required
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-black"
+                        className="absolute right-10 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-black"
                       >
                         {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                       </button>
+                      {validationErrors.password && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                          <AlertCircle className="w-5 h-5 text-red-500" />
+                        </div>
+                      )}
                     </div>
+                    {validationErrors.password && (
+                      <p className="mt-1 text-sm text-red-600 flex items-center">
+                        <AlertCircle className="w-4 h-4 mr-1" />
+                        {validationErrors.password}
+                      </p>
+                    )}
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-black mb-2">
-                      Confirm Password
+                      Confirm Password *
                     </label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
@@ -630,49 +813,94 @@ const RegisterPage = () => {
                         name="confirmPassword"
                         value={formData.confirmPassword}
                         onChange={handleChange}
-                        className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-black"
+                        className={`w-full pl-10 pr-10 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-black ${
+                          validationErrors.confirmPassword ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                        }`}
                         placeholder="Confirm your password"
                         required
                       />
                       <button
                         type="button"
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-black"
+                        className="absolute right-10 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-black"
                       >
                         {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                       </button>
+                      {validationErrors.confirmPassword && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                          <AlertCircle className="w-5 h-5 text-red-500" />
+                        </div>
+                      )}
                     </div>
+                    {validationErrors.confirmPassword && (
+                      <p className="mt-1 text-sm text-red-600 flex items-center">
+                        <AlertCircle className="w-4 h-4 mr-1" />
+                        {validationErrors.confirmPassword}
+                      </p>
+                    )}
                   </div>
                 </div>
 
-                <div className="flex items-start">
-                  <input
-                    id="terms"
-                    name="terms"
-                    type="checkbox"
-                    className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded mt-1"
-                    required
-                  />
-                  <label htmlFor="terms" className="ml-3 block text-sm text-black">
-                    I agree to the{' '}
-                    <Link to="/terms" className="text-primary-600 hover:text-primary-500 font-medium">
-                      Terms of Service
-                    </Link>{' '}
-                    and{' '}
-                    <Link to="/privacy" className="text-primary-600 hover:text-primary-500 font-medium">
-                      Privacy Policy
-                    </Link>
-                  </label>
+                <div className="space-y-2">
+                  <div className="flex items-start">
+                    <input
+                      id="terms"
+                      name="terms"
+                      type="checkbox"
+                      checked={termsAccepted}
+                      onChange={(e) => setTermsAccepted(e.target.checked)}
+                      className={`h-4 w-4 text-primary-600 focus:ring-primary-500 rounded mt-1 ${
+                        validationErrors.terms ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                      required
+                    />
+                    <label htmlFor="terms" className="ml-3 block text-sm text-black">
+                      I agree to the{' '}
+                      <Link to="/terms" className="text-primary-600 hover:text-primary-500 font-medium">
+                        Terms of Service
+                      </Link>{' '}
+                      and{' '}
+                      <Link to="/privacy" className="text-primary-600 hover:text-primary-500 font-medium">
+                        Privacy Policy
+                      </Link>
+                      <span className="text-red-500 ml-1">*</span>
+                    </label>
+                  </div>
+                  {validationErrors.terms && (
+                    <p className="text-sm text-red-600 flex items-center ml-7">
+                      <AlertCircle className="w-4 h-4 mr-1" />
+                      {validationErrors.terms}
+                    </p>
+                  )}
                 </div>
 
                 <motion.button
                   type="submit"
-                  disabled={isLoading}
-                  whileHover={{ scale: isLoading ? 1 : 1.02 }}
-                  whileTap={{ scale: isLoading ? 1 : 0.98 }}
-                  className="w-full bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white font-semibold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isLoading || !isFormValid}
+                  whileHover={{ scale: (isLoading || !isFormValid) ? 1 : 1.02 }}
+                  whileTap={{ scale: (isLoading || !isFormValid) ? 1 : 0.98 }}
+                  className={`w-full font-semibold py-3 px-6 rounded-lg shadow-lg transition-all duration-300 disabled:cursor-not-allowed ${
+                    isFormValid && !isLoading
+                      ? 'bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white hover:shadow-xl'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
                 >
-                  {isLoading ? 'Creating Account...' : `Create Account as ${roles.find(r => r.id === selectedRole)?.title}`}
+                  {isLoading ? (
+                    <div className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                      Creating Account...
+                    </div>
+                  ) : !isFormValid ? (
+                    <div className="flex items-center justify-center">
+                      <AlertCircle className="w-5 h-5 mr-2" />
+                      Please fix errors to continue
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center">
+                      <CheckCircle className="w-5 h-5 mr-2" />
+                      Create Account as {roles.find(r => r.id === selectedRole)?.title}
+                    </div>
+                  )}
                 </motion.button>
               </form>
 

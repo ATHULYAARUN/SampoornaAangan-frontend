@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import parentService from '../services/parentService';
+import ChildDetailsCard from '../components/Parent/ChildDetailsCard';
 import { 
   Baby, 
   Users, 
@@ -22,6 +24,39 @@ import {
 const ParentDashboard = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
+  const [children, setChildren] = useState([]);
+  const [parentStats, setParentStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch parent data on component mount
+  useEffect(() => {
+    fetchParentData();
+  }, []);
+
+  const fetchParentData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      console.log('🔄 Fetching parent dashboard data...');
+
+      // Fetch parent statistics and children data
+      const stats = await parentService.getParentStats();
+
+      setParentStats(stats);
+      setChildren(stats.children);
+
+      console.log('✅ Parent data loaded successfully');
+      console.log('📊 Stats:', stats);
+
+    } catch (error) {
+      console.error('❌ Failed to fetch parent data:', error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('userRole');
@@ -31,80 +66,92 @@ const ParentDashboard = () => {
     navigate('/login');
   };
 
-  // Parent Dashboard Stats - Monitor child status
-  const stats = [
-    {
-      title: 'My Children',
-      value: '2',
-      change: 'Registered',
-      icon: Baby,
-      color: 'blue',
-      description: 'Children enrolled in anganwadi'
-    },
-    {
-      title: 'Attendance Rate',
-      value: '92%',
-      change: 'This month',
-      icon: Calendar,
-      color: 'green',
-      description: 'Average attendance percentage'
-    },
-    {
-      title: 'Pending Vaccinations',
-      value: '1',
-      change: 'Due this week',
-      icon: Stethoscope,
-      color: 'red',
-      description: 'Immunizations required'
-    },
-    {
-      title: 'Growth Status',
-      value: 'Normal',
-      change: 'Last checkup',
-      icon: TrendingUp,
-      color: 'green',
-      description: 'Overall health progress'
-    },
-    {
-      title: 'Scheme Benefits',
-      value: '3',
-      change: 'Active',
-      icon: Gift,
-      color: 'purple',
-      description: 'Welfare schemes enrolled'
-    },
-    {
-      title: 'Nutrition Score',
-      value: '8/10',
-      change: 'Good progress',
-      icon: Utensils,
-      color: 'orange',
-      description: 'Nutritional development rating'
-    }
-  ];
+  const handleViewChildDetails = (childId) => {
+    console.log('👶 Viewing details for child:', childId);
+    // Navigate to child details page or open modal
+    setActiveTab('children');
+    // You could also navigate to a dedicated child details page
+    // navigate(`/parent/child/${childId}`);
+  };
 
-  const children = [
-    {
-      id: 1,
-      name: 'Aarav Kumar',
-      age: '3 years 2 months',
-      lastVisit: '2024-01-15',
-      weight: '12.5 kg',
-      height: '92 cm',
-      vaccinations: '8/10',
-      status: 'Healthy'
-    },
-    {
-      id: 2,
-      name: 'Priya Kumar',
-      age: '5 years 8 months',
-      lastVisit: '2024-01-14',
-      weight: '16.2 kg',
-      height: '105 cm',
-      vaccinations: '10/10',
-      status: 'Healthy'
+  // Generate stats from real data
+  const getStats = () => {
+    if (!parentStats) {
+      return [
+        {
+          title: 'My Children',
+          value: '0',
+          change: 'Loading...',
+          icon: Baby,
+          color: 'blue',
+          description: 'Children enrolled in anganwadi'
+        },
+        {
+          title: 'Attendance Rate',
+          value: '-%',
+          change: 'Loading...',
+          icon: Calendar,
+          color: 'green',
+          description: 'Average attendance percentage'
+        },
+        {
+          title: 'Pending Vaccinations',
+          value: '-',
+          change: 'Loading...',
+          icon: Stethoscope,
+          color: 'red',
+          description: 'Immunizations required'
+        },
+        {
+          title: 'Health Status',
+          value: '-',
+          change: 'Loading...',
+          icon: TrendingUp,
+          color: 'green',
+          description: 'Overall health progress'
+        }
+      ];
     }
-  ];
+
+    return [
+      {
+        title: 'My Children',
+        value: parentStats.totalChildren.toString(),
+        change: 'Registered',
+        icon: Baby,
+        color: 'blue',
+        description: 'Children enrolled in anganwadi'
+      },
+      {
+        title: 'Attendance Rate',
+        value: `${parentStats.attendanceRate}%`,
+        change: 'This month',
+        icon: Calendar,
+        color: parentStats.attendanceRate >= 90 ? 'green' : parentStats.attendanceRate >= 75 ? 'yellow' : 'red',
+        description: 'Average attendance percentage'
+      },
+      {
+        title: 'Pending Vaccinations',
+        value: parentStats.pendingVaccinations.toString(),
+        change: parentStats.pendingVaccinations > 0 ? 'Action needed' : 'All up-to-date',
+        icon: Stethoscope,
+        color: parentStats.pendingVaccinations > 0 ? 'red' : 'green',
+        description: 'Immunizations required'
+      },
+      {
+        title: 'Healthy Children',
+        value: `${parentStats.healthyChildren}/${parentStats.totalChildren}`,
+        change: 'Current status',
+        icon: TrendingUp,
+        color: parentStats.healthyChildren === parentStats.totalChildren ? 'green' : 'yellow',
+        description: 'Overall health progress'
+      }
+    ];
+  };
+
+  const stats = getStats();
+
+  // Children data is now loaded from the API via useState
 
   const recentActivities = [
     {
@@ -179,30 +226,63 @@ const ParentDashboard = () => {
         transition={{ delay: 0.4 }}
         className="bg-white rounded-xl p-6 shadow-lg border border-gray-200"
       >
-        <h3 className="text-lg font-semibold text-black mb-4">My Children</h3>
-        <div className="grid md:grid-cols-2 gap-4">
-          {children.map((child) => (
-            <div key={child.id} className="border border-gray-200 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="font-semibold text-black">{child.name}</h4>
-                <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                  child.status === 'Healthy' 
-                    ? 'bg-green-100 text-green-800' 
-                    : 'bg-yellow-100 text-yellow-800'
-                }`}>
-                  {child.status}
-                </span>
-              </div>
-              <div className="space-y-2 text-sm text-gray-600">
-                <p><strong>Age:</strong> {child.age}</p>
-                <p><strong>Weight:</strong> {child.weight}</p>
-                <p><strong>Height:</strong> {child.height}</p>
-                <p><strong>Vaccinations:</strong> {child.vaccinations}</p>
-                <p><strong>Last Visit:</strong> {child.lastVisit}</p>
-              </div>
-            </div>
-          ))}
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-black">My Children</h3>
+          {children.length > 0 && (
+            <button
+              onClick={() => setActiveTab('children')}
+              className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+            >
+              View All Details →
+            </button>
+          )}
         </div>
+
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span className="ml-2 text-gray-600">Loading children data...</span>
+          </div>
+        ) : error ? (
+          <div className="text-center py-8">
+            <div className="text-red-600 mb-2">❌ Failed to load children data</div>
+            <p className="text-gray-600 text-sm">{error}</p>
+            <button
+              onClick={fetchParentData}
+              className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        ) : children.length === 0 ? (
+          <div className="text-center py-8">
+            <Baby className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <h4 className="text-lg font-medium text-gray-900 mb-2">No Children Found</h4>
+            <p className="text-gray-600">
+              No children are registered under your account. Please contact your Anganwadi Worker if this seems incorrect.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {children.slice(0, 2).map((child) => (
+              <ChildDetailsCard
+                key={child.id}
+                child={child}
+                onViewDetails={handleViewChildDetails}
+              />
+            ))}
+            {children.length > 2 && (
+              <div className="text-center pt-4">
+                <button
+                  onClick={() => setActiveTab('children')}
+                  className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+                >
+                  View {children.length - 2} More Children
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </motion.div>
 
       {/* Recent Activities */}
@@ -236,9 +316,58 @@ const ParentDashboard = () => {
         return renderOverview();
       case 'children':
         return (
-          <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-            <h2 className="text-2xl font-bold text-black mb-4">My Children's Details</h2>
-            <p className="text-gray-600">Detailed health records, attendance, and development tracking for your children will be displayed here.</p>
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-black">My Children's Details</h2>
+                  <p className="text-gray-600">Comprehensive health records, attendance, and development tracking</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-gray-500">Total Children</p>
+                  <p className="text-2xl font-bold text-blue-600">{children.length}</p>
+                </div>
+              </div>
+
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                  <span className="ml-3 text-gray-600">Loading children details...</span>
+                </div>
+              ) : error ? (
+                <div className="text-center py-12">
+                  <div className="text-red-600 mb-4">❌ Failed to load children data</div>
+                  <p className="text-gray-600 mb-4">{error}</p>
+                  <button
+                    onClick={fetchParentData}
+                    className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Retry Loading
+                  </button>
+                </div>
+              ) : children.length === 0 ? (
+                <div className="text-center py-12">
+                  <Baby className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-xl font-medium text-gray-900 mb-2">No Children Registered</h3>
+                  <p className="text-gray-600 mb-4">
+                    No children are currently registered under your account.
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Please contact your local Anganwadi Worker if you believe this is an error.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {children.map((child) => (
+                    <ChildDetailsCard
+                      key={child.id}
+                      child={child}
+                      onViewDetails={handleViewChildDetails}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         );
       case 'health':

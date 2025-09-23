@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import ChildRegistrationForm from '../components/Registration/ChildRegistrationForm';
+import PregnantWomanRegistrationForm from '../components/Registration/PregnantWomanRegistrationForm';
+import AdolescentRegistrationForm from '../components/Registration/AdolescentRegistrationForm';
+import NewbornRegistrationForm from '../components/Registration/NewbornRegistrationForm';
+import registrationService from '../services/registrationService';
 import { 
   Baby, 
   Users, 
@@ -22,6 +27,8 @@ import {
 const AWWDashboard = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
+  const [showRegistrationForm, setShowRegistrationForm] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLogout = () => {
     localStorage.removeItem('userRole');
@@ -29,6 +36,82 @@ const AWWDashboard = () => {
     localStorage.removeItem('userEmail');
     localStorage.removeItem('isAuthenticated');
     navigate('/login');
+  };
+
+  // Registration handlers
+  const handleChildRegistration = async (childData) => {
+    try {
+      setIsLoading(true);
+      console.log('🚀 Starting child registration...');
+      console.log('📋 Child data received:', JSON.stringify(childData, null, 2));
+
+      // Validate required fields before sending
+      const requiredFields = ['name', 'dateOfBirth', 'gender', 'parentName', 'parentPhone', 'relationToChild', 'anganwadiCenter'];
+      const missingFields = requiredFields.filter(field => !childData[field] || childData[field].trim() === '');
+
+      if (missingFields.length > 0) {
+        throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+      }
+
+      // Validate address
+      const requiredAddressFields = ['street', 'village', 'block', 'district', 'state', 'pincode'];
+      const missingAddressFields = requiredAddressFields.filter(field => !childData.address[field] || childData.address[field].trim() === '');
+
+      if (missingAddressFields.length > 0) {
+        throw new Error(`Missing address fields: ${missingAddressFields.join(', ')}`);
+      }
+
+      await registrationService.registerChild(childData);
+      setShowRegistrationForm(null);
+      alert('Child registered successfully!');
+    } catch (error) {
+      console.error('Registration error:', error);
+      alert(`Registration failed: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handlePregnantWomanRegistration = async (womanData) => {
+    try {
+      setIsLoading(true);
+      await registrationService.registerPregnantWoman(womanData);
+      setShowRegistrationForm(null);
+      alert('Pregnant woman registered successfully!');
+    } catch (error) {
+      console.error('Registration error:', error);
+      alert(`Registration failed: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAdolescentRegistration = async (adolescentData) => {
+    try {
+      setIsLoading(true);
+      await registrationService.registerAdolescent(adolescentData);
+      setShowRegistrationForm(null);
+      alert('Adolescent registered successfully!');
+    } catch (error) {
+      console.error('Registration error:', error);
+      alert(`Registration failed: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleNewbornRegistration = async (newbornData) => {
+    try {
+      setIsLoading(true);
+      await registrationService.registerNewborn(newbornData);
+      setShowRegistrationForm(null);
+      alert('Newborn registered successfully!');
+    } catch (error) {
+      console.error('Registration error:', error);
+      alert(`Registration failed: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // AWW Dashboard Stats - Day-to-day data entry and local management
@@ -208,35 +291,106 @@ const AWWDashboard = () => {
     </div>
   );
 
-  const renderRegistration = () => (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-black">Registration Management</h2>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {[
-          { title: 'Register Child', icon: Baby, color: 'blue', description: 'Add new child to the system' },
-          { title: 'Register Pregnant Woman', icon: Heart, color: 'pink', description: 'Add expectant mother' },
-          { title: 'Register Adolescent', icon: Users, color: 'purple', description: 'Add adolescent girl (10-19 years)' },
-          { title: 'Register Newborn', icon: Baby, color: 'green', description: 'Add newborn baby' }
-        ].map((item, index) => (
-          <motion.div
-            key={item.title}
-            whileHover={{ y: -5 }}
-            className="bg-white rounded-xl p-6 shadow-lg border border-gray-200 cursor-pointer hover:shadow-xl transition-all"
-          >
-            <div className={`w-12 h-12 bg-${item.color}-100 rounded-lg flex items-center justify-center mb-4`}>
-              <item.icon className={`w-6 h-6 text-${item.color}-600`} />
-            </div>
-            <h3 className="font-semibold text-black mb-2">{item.title}</h3>
-            <p className="text-sm text-gray-600">{item.description}</p>
-            <button className={`mt-4 w-full bg-${item.color}-50 text-${item.color}-600 py-2 px-4 rounded-lg hover:bg-${item.color}-100 transition-colors`}>
-              Start Registration
-            </button>
-          </motion.div>
-        ))}
+  const renderRegistration = () => {
+    // If a registration form is shown, render it
+    if (showRegistrationForm === 'child') {
+      return (
+        <ChildRegistrationForm
+          onSubmit={handleChildRegistration}
+          onCancel={() => setShowRegistrationForm(null)}
+          isLoading={isLoading}
+        />
+      );
+    }
+
+    if (showRegistrationForm === 'pregnant-woman') {
+      return (
+        <PregnantWomanRegistrationForm
+          onSubmit={handlePregnantWomanRegistration}
+          onCancel={() => setShowRegistrationForm(null)}
+          isLoading={isLoading}
+        />
+      );
+    }
+
+    if (showRegistrationForm === 'adolescent') {
+      return (
+        <AdolescentRegistrationForm
+          onSubmit={handleAdolescentRegistration}
+          onCancel={() => setShowRegistrationForm(null)}
+          isLoading={isLoading}
+        />
+      );
+    }
+
+    if (showRegistrationForm === 'newborn') {
+      return (
+        <NewbornRegistrationForm
+          onSubmit={handleNewbornRegistration}
+          onCancel={() => setShowRegistrationForm(null)}
+          isLoading={isLoading}
+        />
+      );
+    }
+
+    // Default registration selection view
+    return (
+      <div className="space-y-6">
+        <h2 className="text-2xl font-bold text-black">Registration Management</h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[
+            {
+              title: 'Register Child',
+              icon: Baby,
+              color: 'blue',
+              description: 'Add new child to the system',
+              action: () => setShowRegistrationForm('child')
+            },
+            {
+              title: 'Register Pregnant Woman',
+              icon: Heart,
+              color: 'pink',
+              description: 'Add expectant mother',
+              action: () => setShowRegistrationForm('pregnant-woman')
+            },
+            {
+              title: 'Register Adolescent',
+              icon: Users,
+              color: 'purple',
+              description: 'Add adolescent girl (10-19 years)',
+              action: () => setShowRegistrationForm('adolescent')
+            },
+            {
+              title: 'Register Newborn',
+              icon: Baby,
+              color: 'green',
+              description: 'Add newborn baby',
+              action: () => setShowRegistrationForm('newborn')
+            }
+          ].map((item, index) => (
+            <motion.div
+              key={item.title}
+              whileHover={{ y: -5 }}
+              className="bg-white rounded-xl p-6 shadow-lg border border-gray-200 cursor-pointer hover:shadow-xl transition-all"
+            >
+              <div className={`w-12 h-12 bg-${item.color}-100 rounded-lg flex items-center justify-center mb-4`}>
+                <item.icon className={`w-6 h-6 text-${item.color}-600`} />
+              </div>
+              <h3 className="font-semibold text-black mb-2">{item.title}</h3>
+              <p className="text-sm text-gray-600">{item.description}</p>
+              <button
+                onClick={item.action}
+                className={`mt-4 w-full bg-${item.color}-50 text-${item.color}-600 py-2 px-4 rounded-lg hover:bg-${item.color}-100 transition-colors`}
+              >
+                Start Registration
+              </button>
+            </motion.div>
+          ))}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderAttendance = () => (
     <div className="space-y-6">

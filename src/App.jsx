@@ -8,6 +8,7 @@ import AboutPage from './pages/AboutPage';
 import FeaturesPage from './pages/FeaturesPage';
 import HowItWorksPage from './pages/HowItWorksPage';
 import ContactPage from './pages/ContactPage';
+import ProcessPage from './pages/ProcessPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
@@ -92,6 +93,16 @@ function AppContent() {
               transition={{ duration: 0.5, ease: "easeInOut" }}
             >
               <ContactPage />
+            </motion.div>
+          } />
+          <Route path="/process" element={
+            <motion.div
+              initial={{ opacity: 0, y: 50 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -50 }}
+              transition={{ duration: 0.5, ease: "easeInOut" }}
+            >
+              <ProcessPage />
             </motion.div>
           } />
           <Route path="/login" element={

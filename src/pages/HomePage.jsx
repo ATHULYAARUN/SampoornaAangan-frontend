@@ -509,11 +509,9 @@ const HomePage = () => {
               <h3 className="text-2xl font-bold text-black mb-4">Trusted by Government Partners</h3>
               <p className="text-gray-600">Official partnerships with state governments and ICDS departments</p>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 items-center">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center justify-center max-w-md mx-auto">
               {[
-                { name: "Government of Maharashtra", abbr: "MH" },
-                { name: "Government of Karnataka", abbr: "KA" },
-                { name: "Government of Gujarat", abbr: "GJ" },
+                { name: "Government of Kerala", abbr: "KL" },
                 { name: "ICDS Department", abbr: "ICDS" }
               ].map((partner, index) => (
                 <motion.div

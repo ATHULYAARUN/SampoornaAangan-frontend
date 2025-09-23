@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import CreateWorkerModal from './CreateWorkerModal';
+import ExportModal from './ExportModal';
 import { 
   Users, 
   Plus, 
@@ -29,6 +30,7 @@ const WorkerManagement = () => {
   const [selectedWorker, setSelectedWorker] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   const workerRoles = [
     { id: 'anganwadi-worker', name: 'Anganwadi Worker', icon: '👶' },
@@ -233,7 +235,10 @@ const WorkerManagement = () => {
                 Refresh
               </button>
               
-              <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2">
+              <button
+                onClick={() => setShowExportModal(true)}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2 transition-colors"
+              >
                 <Download className="w-4 h-4" />
                 Export
               </button>
@@ -350,6 +355,14 @@ const WorkerManagement = () => {
           }}
         />
       )}
+
+      {/* Export Modal */}
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        dataType="workers"
+        title="Export Workers Data"
+      />
     </div>
   );
 };

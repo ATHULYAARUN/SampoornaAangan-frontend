@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -24,133 +24,215 @@ import {
   Edit,
   Trash2,
   Eye,
-  LogOut
+  LogOut,
+  RefreshCw,
+  Wifi,
+  WifiOff
 } from 'lucide-react';
 import UserManagement from '../components/UserManagement';
 import WorkerManagement from '../components/admin/WorkerManagement';
+import ExportButton from '../components/admin/ExportButton';
+import dashboardService from '../services/dashboardService';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
+  const [dashboardData, setDashboardData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [isRealTime, setIsRealTime] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Set up real-time dashboard updates
+  useEffect(() => {
+    console.log('🚀 Setting up real-time dashboard...');
+
+    // Subscribe to dashboard updates
+    const unsubscribe = dashboardService.subscribe((data) => {
+      console.log('📊 Received dashboard update:', data);
+      setDashboardData(data);
+      setLastUpdated(data.lastUpdated);
+      setIsRealTime(data.isRealTime);
+      setIsLoading(false);
+    });
+
+    // Start real-time updates (every 15 seconds for more responsive updates)
+    dashboardService.startRealTimeUpdates(15000);
+
+    // Set high frequency when user is on anganwadi management tab
+    if (activeTab === 'anganwadi') {
+      dashboardService.setUpdateFrequency('high'); // 5 seconds
+    } else {
+      dashboardService.setUpdateFrequency('normal'); // 15 seconds
+    }
+
+    // Cleanup on unmount
+    return () => {
+      console.log('🛑 Cleaning up dashboard service...');
+      dashboardService.stopRealTimeUpdates();
+      unsubscribe();
+    };
+  }, []);
+
+  // Update frequency based on active tab
+  useEffect(() => {
+    if (activeTab === 'anganwadi') {
+      dashboardService.setUpdateFrequency('high'); // More frequent updates for anganwadi data
+    } else if (activeTab === 'overview') {
+      dashboardService.setUpdateFrequency('normal');
+    } else {
+      dashboardService.setUpdateFrequency('low');
+    }
+  }, [activeTab]);
 
   const handleLogout = () => {
+    // Stop real-time updates
+    dashboardService.stopRealTimeUpdates();
+
     // Clear authentication data
     localStorage.removeItem('userRole');
     localStorage.removeItem('userName');
     localStorage.removeItem('isAuthenticated');
-    
+
     // Redirect to login page
     navigate('/login');
   };
 
-  // Super Admin Dashboard Stats - Overall control and monitoring
-  const stats = [
-    {
-      title: 'Total Anganwadis',
-      value: '45',
-      change: '+3%',
-      icon: Baby,
-      color: 'blue',
-      description: 'Active centers under monitoring'
-    },
-    {
-      title: 'Total Users',
-      value: '2,847',
-      change: '+18%',
-      icon: Users,
-      color: 'green',
-      description: 'All registered users in system'
-    },
-    {
-      title: 'Scheme Coverage',
-      value: '89.2%',
-      change: '+5.2%',
-      icon: Shield,
-      color: 'purple',
-      description: 'Overall scheme implementation'
-    },
-    {
-      title: 'Health Alerts',
-      value: '23',
-      change: '-12%',
-      icon: Heart,
-      color: 'red',
-      description: 'High-risk pregnancy & anemia alerts'
-    },
-    {
-      title: 'Waste Management',
-      value: '94.5%',
-      change: '+2.1%',
-      icon: Activity,
-      color: 'orange',
-      description: 'Collection efficiency rate'
-    },
-    {
-      title: 'Data Verification',
-      value: '156',
-      change: '+8%',
-      icon: FileText,
-      color: 'indigo',
-      description: 'Pending verifications'
+  // Manual refresh function
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await dashboardService.refreshNow();
+      console.log('✅ Manual refresh completed');
+    } catch (error) {
+      console.error('❌ Manual refresh failed:', error);
+    } finally {
+      setIsRefreshing(false);
     }
-  ];
+  };
 
-  const recentActivities = [
-    {
-      id: 1,
-      type: 'alert',
-      message: 'High-risk pregnancy alert from Akkarakunnu Center',
-      time: '15 minutes ago',
-      icon: Heart,
-      priority: 'high'
-    },
-    {
-      id: 2,
-      type: 'verification',
-      message: 'Growth chart data verified for 25 children',
-      time: '1 hour ago',
-      icon: FileText,
-      priority: 'medium'
-    },
-    {
-      id: 3,
-      type: 'waste',
-      message: 'Waste collection completed in Ward 3',
-      time: '2 hours ago',
-      icon: Activity,
-      priority: 'low'
-    },
-    {
-      id: 4,
-      type: 'report',
-      message: 'Ward-wise health report generated',
-      time: '3 hours ago',
-      icon: BarChart3,
-      priority: 'medium'
-    },
-    {
-      id: 5,
-      type: 'alert',
-      message: 'Anemia screening alert for 8 adolescent girls',
-      time: '4 hours ago',
-      icon: Bell,
-      priority: 'high'
-    }
-  ];
+  // Icon mapping for string to component conversion
+  const iconMap = {
+    Baby,
+    Users,
+    Shield,
+    Heart,
+    Activity,
+    FileText,
+    Database
+  };
 
-  const anganwadiData = [
-    {
-      id: 1,
-      name: 'Akkarakunnu Anganwadi Center',
-      location: 'Elangulam, Kottayam, Kerala',
-      workers: 2,
-      children: 25,
-      status: 'Active',
-      lastUpdate: '2024-01-15',
-      code: 'AW34',
-      pincode: '686522'
+  // Get real-time stats or fallback to default values
+  const getStats = () => {
+    if (isLoading || !dashboardData) {
+      return [
+        {
+          title: 'Total Anganwadis',
+          value: '2',
+          change: '+0%',
+          icon: Baby,
+          color: 'blue',
+          description: 'Active centers under monitoring'
+        },
+        {
+          title: 'Total Users',
+          value: '0',
+          change: '+0%',
+          icon: Users,
+          color: 'green',
+          description: 'All registered users in system'
+        },
+        {
+          title: 'Scheme Coverage',
+          value: '85%',
+          change: '+5.2%',
+          icon: Shield,
+          color: 'purple',
+          description: 'Overall scheme implementation'
+        },
+        {
+          title: 'Health Alerts',
+          value: '0',
+          change: '+0%',
+          icon: Heart,
+          color: 'red',
+          description: 'High-risk pregnancy & anemia alerts'
+        },
+        {
+          title: 'Waste Management',
+          value: '94.5%',
+          change: '+2.1%',
+          icon: Activity,
+          color: 'orange',
+          description: 'Collection efficiency rate'
+        },
+        {
+          title: 'Data Verification',
+          value: '0',
+          change: '+0%',
+          icon: FileText,
+          color: 'indigo',
+          description: 'Pending verifications'
+        }
+      ];
     }
-  ];
+
+    // Get stats from service and map icon strings to components
+    const serviceStats = dashboardService.getFormattedStats(dashboardData);
+    return serviceStats.map(stat => ({
+      ...stat,
+      icon: iconMap[stat.icon] || Activity
+    }));
+  };
+
+  const stats = getStats();
+
+  // Get real-time recent activities
+  const getRecentActivities = () => {
+    if (dashboardData && dashboardData.recentActivities) {
+      return dashboardData.recentActivities.map(activity => ({
+        ...activity,
+        icon: getIconForActivityType(activity.type)
+      }));
+    }
+
+    // Fallback activities when no data is available
+    return [
+      {
+        id: 'default-1',
+        type: 'info',
+        message: 'No recent activities to display',
+        time: 'Just now',
+        icon: Activity,
+        priority: 'low'
+      },
+      {
+        id: 'default-2',
+        type: 'info',
+        message: 'System monitoring active',
+        time: '1 min ago',
+        icon: Bell,
+        priority: 'low'
+      }
+    ];
+  };
+
+  // Helper function to get icon for activity type
+  const getIconForActivityType = (type) => {
+    switch (type) {
+      case 'alert': return Heart;
+      case 'registration': return Users;
+      case 'verification': return FileText;
+      case 'waste': return Activity;
+      case 'report': return BarChart3;
+      default: return Bell;
+    }
+  };
+
+  const recentActivities = getRecentActivities();
+
+  // Get real-time Anganwadi data
+  const anganwadiData = dashboardService.getAnganwadiData(dashboardData);
 
   const renderOverview = () => (
     <div className="space-y-6">
@@ -264,7 +346,13 @@ const AdminDashboard = () => {
                   Anganwadi Center
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Center Code
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Location
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Ward
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Workers
@@ -289,15 +377,30 @@ const AdminDashboard = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
+                      <Database className="w-4 h-4 text-blue-500 mr-2" />
+                      <span className="text-sm font-semibold text-blue-600">{center.code}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
                       <MapPin className="w-4 h-4 text-gray-400 mr-2" />
                       <span className="text-sm text-black">{center.location}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-black">
-                    {center.workers}
+                    {center.ward}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-black">
-                    {center.children}
+                    <div className="flex items-center">
+                      <Users className="w-4 h-4 text-green-500 mr-1" />
+                      <span className="font-semibold">{center.workers}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-black">
+                    <div className="flex items-center">
+                      <Baby className="w-4 h-4 text-purple-500 mr-1" />
+                      <span className="font-semibold">{center.children}</span>
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -556,15 +659,53 @@ const AdminDashboard = () => {
               <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center mr-3">
                 <Shield className="w-5 h-5 text-white" />
               </div>
-              <h1 className="text-xl font-bold text-black">Admin Dashboard</h1>
+              <div className="flex flex-col">
+                <h1 className="text-xl font-bold text-black">Admin Dashboard</h1>
+                <div className="flex items-center space-x-2 text-xs">
+                  <div className={`w-2 h-2 rounded-full ${isRealTime ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                  <span className="text-gray-500">
+                    {isRealTime ? 'Live' : 'Offline'} •
+                    {lastUpdated ? ` Updated ${new Date(lastUpdated).toLocaleTimeString()}` : ' Loading...'}
+                  </span>
+                </div>
+              </div>
             </div>
             <div className="flex items-center space-x-4">
+              {/* Export Button */}
+              <ExportButton />
+
+              {/* Manual Refresh Button */}
+              <motion.button
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className={`p-2 text-gray-600 hover:text-black transition-colors duration-200 ${
+                  isRefreshing ? 'animate-spin' : ''
+                }`}
+                title="Refresh dashboard data"
+              >
+                <RefreshCw className="w-5 h-5" />
+              </motion.button>
+
+              {/* Real-time Status */}
+              <div className="flex items-center space-x-2 px-3 py-1 bg-gray-100 rounded-lg">
+                {isRealTime ? (
+                  <Wifi className="w-4 h-4 text-green-500" />
+                ) : (
+                  <WifiOff className="w-4 h-4 text-red-500" />
+                )}
+                <span className="text-xs font-medium text-gray-700">
+                  {isRealTime ? 'Live' : 'Offline'}
+                </span>
+              </div>
+
               {/* Notifications */}
               <button className="relative p-2 text-gray-600 hover:text-black transition-colors duration-200">
                 <Bell className="w-5 h-5" />
                 <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
               </button>
-              
+
               {/* Logout Button */}
               <motion.button
                 onClick={handleLogout}

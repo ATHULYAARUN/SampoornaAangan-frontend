@@ -240,11 +240,14 @@ const UserManagement = () => {
     setShowEditModal(true);
   };
 
+  // Show only Parent and Adolescent Girl users in Admin > User Management
   const filteredUsers = users.filter(user => {
+    const allowedRoles = ['parent', 'adolescent-girl'];
+    const matchesAllowed = allowedRoles.includes(user.role);
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = roleFilter === 'all' || user.role === roleFilter;
-    return matchesSearch && matchesRole;
+    return matchesAllowed && matchesSearch && matchesRole;
   });
 
   const getRoleIcon = (role) => {
@@ -422,15 +425,8 @@ const UserManagement = () => {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-black">User Management</h2>
-          <p className="text-gray-600">Manage Anganwadi Workers, ASHA Volunteers, and Sanitation Workers</p>
+          <p className="text-gray-600">Manage Parents and Adolescent Girls</p>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          Add New User
-        </button>
       </div>
 
       {/* Email Status */}
@@ -473,10 +469,9 @@ const UserManagement = () => {
             onChange={(e) => setRoleFilter(e.target.value)}
             className="pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
           >
-            <option value="all">All Roles</option>
-            {workerRoles.map(role => (
-              <option key={role.id} value={role.id}>{role.title}</option>
-            ))}
+            <option value="all">All</option>
+            <option value="parent">Parent</option>
+            <option value="adolescent-girl">Adolescent Girl</option>
           </select>
         </div>
       </div>
