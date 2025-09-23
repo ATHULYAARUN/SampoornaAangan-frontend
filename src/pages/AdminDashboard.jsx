@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import UserManagement from '../components/UserManagement';
 import WorkerManagement from '../components/admin/WorkerManagement';
+import ReportsAnalytics from '../components/admin/ReportsAnalytics';
 import ExportButton from '../components/admin/ExportButton';
 import dashboardService from '../services/dashboardService';
 
@@ -441,14 +442,7 @@ const AdminDashboard = () => {
     <WorkerManagement />
   );
 
-  const renderReports = () => (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-black">Reports & Analytics</h2>
-      <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-        <p className="text-gray-600">Reports and analytics interface will be implemented here.</p>
-      </div>
-    </div>
-  );
+  const renderReports = () => <ReportsAnalytics />;
 
   const renderHealthMonitoring = () => (
     <div className="space-y-6">
