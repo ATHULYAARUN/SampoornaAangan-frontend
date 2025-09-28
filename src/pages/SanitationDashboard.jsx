@@ -16,17 +16,36 @@ import {
   Calendar,
   TrendingUp
 } from 'lucide-react';
+import authService from '../services/authService';
+import sessionManager from '../utils/sessionManager';
 
 const SanitationDashboard = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
 
-  const handleLogout = () => {
-    localStorage.removeItem('userRole');
-    localStorage.removeItem('userName');
-    localStorage.removeItem('userEmail');
-    localStorage.removeItem('isAuthenticated');
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      console.log('🔐 Sanitation logout button clicked, starting logout process...');
+      
+      // Use sessionManager for complete cleanup
+      sessionManager.destroySession();
+      console.log('🧹 Session destroyed via sessionManager');
+
+      // Call logout service
+      await authService.logout();
+      console.log('✅ AuthService logout successful');
+      
+      // Redirect to login page
+      navigate('/login', { replace: true });
+      console.log('📍 Navigated to login page');
+      
+    } catch (error) {
+      console.error('❌ Sanitation logout error:', error);
+      // Force logout even if there's an error
+      console.log('🔧 Force clearing session data...');
+      sessionManager.destroySession();
+      navigate('/login', { replace: true });
+    }
   };
 
   // Sanitation Worker Dashboard Stats - Read-only and checklist access

@@ -22,9 +22,36 @@ import SanitationDashboard from './pages/SanitationDashboard';
 // Import components
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import ProtectedRoute from './components/ProtectedRoute';
+import NavigationGuard from './components/NavigationGuard';
+
+// Import session management
+import sessionManager from './utils/sessionManager';
 
 function AppContent() {
   const location = useLocation();
+  
+  // Initialize session monitoring
+  React.useEffect(() => {
+    sessionManager.setupSessionMonitoring();
+    
+    // Listen for session events
+    const handleSessionEvent = (event) => {
+      if (event === 'session_expired' || event === 'session_destroyed') {
+        console.log('🔒 Session ended, checking if redirect is needed');
+        // If on a protected route, redirect to login
+        if (location.pathname.includes('dashboard')) {
+          window.location.href = '/login';
+        }
+      }
+    };
+
+    sessionManager.addListener(handleSessionEvent);
+
+    return () => {
+      sessionManager.removeListener(handleSessionEvent);
+    };
+  }, [location.pathname]);
   
   // Define routes that should not show the homepage navbar
   const dashboardRoutes = [
@@ -40,6 +67,9 @@ function AppContent() {
 
   return (
     <div className="min-h-screen relative overflow-hidden">
+      {/* Navigation Guard for session protection */}
+      <NavigationGuard />
+      
       {/* Only show Navbar for non-dashboard routes */}
       {!isDashboardRoute && <Navbar />}
       
@@ -136,13 +166,37 @@ function AppContent() {
             </motion.div>
           } />
           
-          {/* Dashboard routes without navbar */}
-          <Route path="/admin-dashboard" element={<AdminDashboard />} />
-          <Route path="/aww-dashboard" element={<AWWDashboard />} />
-          <Route path="/asha-dashboard" element={<ASHADashboard />} />
-          <Route path="/parent-dashboard" element={<ParentDashboard />} />
-          <Route path="/adolescent-dashboard" element={<AdolescentDashboard />} />
-          <Route path="/sanitation-dashboard" element={<SanitationDashboard />} />
+          {/* Protected Dashboard routes without navbar */}
+          <Route path="/admin-dashboard" element={
+            <ProtectedRoute allowedRoles={['super-admin']}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/aww-dashboard" element={
+            <ProtectedRoute allowedRoles={['anganwadi-worker']}>
+              <AWWDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/asha-dashboard" element={
+            <ProtectedRoute allowedRoles={['asha-volunteer']}>
+              <ASHADashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/parent-dashboard" element={
+            <ProtectedRoute allowedRoles={['parent']}>
+              <ParentDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/adolescent-dashboard" element={
+            <ProtectedRoute allowedRoles={['adolescent-girl']}>
+              <AdolescentDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/sanitation-dashboard" element={
+            <ProtectedRoute allowedRoles={['sanitation-worker']}>
+              <SanitationDashboard />
+            </ProtectedRoute>
+          } />
         </Routes>
       </AnimatePresence>
       

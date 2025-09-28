@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Authentication</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, button {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔐 Authentication Test Tool</h1>
+    
+    <div class="container">
+        <h2>1. Admin Login</h2>
+        <form id="adminLoginForm">
+            <div class="form-group">
+                <label for="adminEmail">Email:</label>
+                <input type="email" id="adminEmail" value="admin@test.com" required>
+            </div>
+            <div class="form-group">
+                <label for="adminPassword">Password:</label>
+                <input type="password" id="adminPassword" value="admin123" required>
+            </div>
+            <button type="submit">Login as Admin</button>
+        </form>
+        <div id="adminResult" class="result" style="display: none;"></div>
+    </div>
+
+    <div class="container">
+        <h2>2. Test Attendance API</h2>
+        <button id="testAttendanceBtn" onclick="testAttendanceAPI()">Test Attendance API</button>
+        <div id="attendanceResult" class="result" style="display: none;"></div>
+    </div>
+
+    <div class="container">
+        <h2>3. Current Storage State</h2>
+        <button onclick="showStorageState()">Show LocalStorage</button>
+        <div id="storageResult" class="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:5007/api';
+
+        // Admin Login
+        document.getElementById('adminLoginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('adminEmail').value;
+            const password = document.getElementById('adminPassword').value;
+            const resultDiv = document.getElementById('adminResult');
+            
+            try {
+                resultDiv.style.display = 'block';
+                resultDiv.className = 'result info';
+                resultDiv.textContent = 'Logging in...';
+                
+                console.log('🔐 Attempting admin login...');
+                
+                const response = await fetch(`${API_BASE_URL}/auth/admin/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        identifier: email,
+                        password: password
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    localStorage.setItem('userRole', 'super-admin');
+                    localStorage.setItem('userName', result.data.admin.name);
+                    localStorage.setItem('userEmail', result.data.admin.email);
+                    localStorage.setItem('isAuthenticated', 'true');
+                    localStorage.setItem('adminToken', result.data.token);
+                    
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = `✅ Admin login successful!\n\nToken: ${result.data.token}\n\nAdmin Details:\n${JSON.stringify(result.data.admin, null, 2)}`;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `❌ Login failed: ${result.message}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ Error: ${error.message}`;
+                console.error('Admin login error:', error);
+            }
+        });
+
+        // Test Attendance API
+        async function testAttendanceAPI() {
+            const resultDiv = document.getElementById('attendanceResult');
+            
+            try {
+                resultDiv.style.display = 'block';
+                resultDiv.className = 'result info';
+                resultDiv.textContent = 'Testing attendance API...';
+                
+                // Get token from storage
+                const adminToken = localStorage.getItem('adminToken');
+                const firebaseToken = localStorage.getItem('firebaseToken');
+                const authToken = localStorage.getItem('authToken');
+                const token = adminToken || firebaseToken || authToken;
+                
+                if (!token) {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = '❌ No authentication token found. Please login first.';
+                    return;
+                }
+                
+                console.log('🔐 Using token:', token.substring(0, 20) + '...');
+                
+                const response = await fetch(`${API_BASE_URL}/attendance/today/Shantinagar%20Anganwadi`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = `✅ Attendance API Success!\n\nResponse:\n${JSON.stringify(result, null, 2)}`;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `❌ Attendance API Error (${response.status}):\n${JSON.stringify(result, null, 2)}`;
+                }
+                
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ Network Error: ${error.message}`;
+                console.error('Attendance API error:', error);
+            }
+        }
+
+        // Show Storage State
+        function showStorageState() {
+            const resultDiv = document.getElementById('storageResult');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result info';
+            
+            const storage = {
+                userRole: localStorage.getItem('userRole'),
+                userName: localStorage.getItem('userName'),
+                userEmail: localStorage.getItem('userEmail'),
+                isAuthenticated: localStorage.getItem('isAuthenticated'),
+                adminToken: localStorage.getItem('adminToken') ? localStorage.getItem('adminToken').substring(0, 20) + '...' : null,
+                firebaseToken: localStorage.getItem('firebaseToken') ? localStorage.getItem('firebaseToken').substring(0, 20) + '...' : null,
+                authToken: localStorage.getItem('authToken') ? localStorage.getItem('authToken').substring(0, 20) + '...' : null,
+                authMethod: localStorage.getItem('authMethod')
+            };
+            
+            resultDiv.textContent = `📊 LocalStorage State:\n${JSON.stringify(storage, null, 2)}`;
+        }
+    </script>
+</body>
+</html>

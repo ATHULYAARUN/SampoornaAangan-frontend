@@ -5,7 +5,12 @@ import ChildRegistrationForm from '../components/Registration/ChildRegistrationF
 import PregnantWomanRegistrationForm from '../components/Registration/PregnantWomanRegistrationForm';
 import AdolescentRegistrationForm from '../components/Registration/AdolescentRegistrationForm';
 import NewbornRegistrationForm from '../components/Registration/NewbornRegistrationForm';
+import AttendanceManagement from '../components/attendance/AttendanceManagement';
+import HealthGrowthMonitoring from '../components/health/HealthGrowthMonitoring';
+import AWWProfile from '../components/Profile/AWWProfile';
 import registrationService from '../services/registrationService';
+import authService from '../services/authService';
+import sessionManager from '../utils/sessionManager';
 import { 
   Baby, 
   Users, 
@@ -21,7 +26,8 @@ import {
   FileText,
   Utensils,
   Scale,
-  Stethoscope
+  Stethoscope,
+  User
 } from 'lucide-react';
 
 const AWWDashboard = () => {
@@ -29,13 +35,172 @@ const AWWDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [showRegistrationForm, setShowRegistrationForm] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Nutrition state management
+  const [nutritionData, setNutritionData] = useState({
+    todayDistribution: 45,
+    totalChildren: 45,
+    weeklyMenu: {
+      // Week 1
+      'Week1-Monday': {
+        snack: 'Ragi Porridge (with jaggery)',
+        lunch: 'Rice + Sambar + Egg Curry / Green Gram Curry',
+        evening: 'Steamed Banana (Nendran)'
+      },
+      'Week1-Tuesday': {
+        snack: 'Wheat Upma with vegetables',
+        lunch: 'Rice + Moru Curry + Cabbage Thoran + Fish Curry / Vanpayar Curry',
+        evening: 'Rava Ladoo + Milk'
+      },
+      'Week1-Wednesday': {
+        snack: 'Green Gram Sundal',
+        lunch: 'Rice + Dal Curry + Beetroot Thoran + Papadam',
+        evening: 'Aval Nanachathu (with banana & jaggery)'
+      },
+      'Week1-Thursday': {
+        snack: 'Boiled Sweet Potato',
+        lunch: 'Rice + Sambar + Spinach Thoran + Fish Fry / Soya Curry',
+        evening: 'Milk + Banana'
+      },
+      'Week1-Friday': {
+        snack: 'Ragi Idiyappam with Coconut Milk',
+        lunch: 'Rice + Vegetable Kurma + Yam Upperi',
+        evening: 'Groundnut Chikki'
+      },
+      'Week1-Saturday': {
+        snack: 'Idli + Sambar',
+        lunch: 'Rice + Vegetable Pulissery + Beans Thoran + Curd',
+        evening: 'Upma + Milk'
+      },
+      // Week 2
+      'Week2-Monday': {
+        snack: 'Wheat Porridge with milk',
+        lunch: 'Rice + Vegetable Sambar + Egg Roast / Cowpea Curry',
+        evening: 'Banana Fry (Pazham Pori with less oil)'
+      },
+      'Week2-Tuesday': {
+        snack: 'Rava Upma with groundnuts',
+        lunch: 'Rice + Tomato Rasam + Cabbage Thoran',
+        evening: 'Boiled Corn with salt'
+      },
+      'Week2-Wednesday': {
+        snack: 'Aval Ladoo',
+        lunch: 'Rice + Dal Curry + Pumpkin Erissery',
+        evening: 'Milk + Chana Sundal'
+      },
+      'Week2-Thursday': {
+        snack: 'Banana + Jaggery Drink',
+        lunch: 'Rice + Spinach Sambar + Fish Curry / Soya Thoran',
+        evening: 'Vegetable Cutlet + Milk'
+      },
+      'Week2-Friday': {
+        snack: 'Wheat Dosa + Coconut Chutney',
+        lunch: 'Rice + Vegetable Kurma + Beetroot Thoran',
+        evening: 'Boiled Chickpeas with onion & coconut'
+      },
+      'Week2-Saturday': {
+        snack: 'Puttu + Banana',
+        lunch: 'Rice + Moru Curry + Beans Mezhukkupuratti + Papadam',
+        evening: 'Sweet Aval + Milk'
+      },
+      // Week 3
+      'Week3-Monday': {
+        snack: 'Ragi Malt (Ragi + Milk + Jaggery)',
+        lunch: 'Rice + Sambar + Egg Curry',
+        evening: 'Banana + Groundnuts'
+      },
+      'Week3-Tuesday': {
+        snack: 'Vegetable Upma',
+        lunch: 'Rice + Moru Curry + Cabbage Thoran + Fish Fry',
+        evening: 'Roasted Bengal Gram with Jaggery'
+      },
+      'Week3-Wednesday': {
+        snack: 'Boiled Sweet Potato',
+        lunch: 'Rice + Dal Curry + Drumstick Sambar',
+        evening: 'Aval with Milk + Banana'
+      },
+      'Week3-Thursday': {
+        snack: 'Idiyappam + Coconut Milk',
+        lunch: 'Rice + Spinach Dal + Vegetable Stir Fry',
+        evening: 'Vegetable Pakora + Milk'
+      },
+      'Week3-Friday': {
+        snack: 'Banana Dosa',
+        lunch: 'Rice + Vegetable Kurma + Cowpea Thoran',
+        evening: 'Green Gram Sundal'
+      },
+      'Week3-Saturday': {
+        snack: 'Idli + Tomato Chutney',
+        lunch: 'Rice + Pulissery + Beans Thoran',
+        evening: 'Upma + Milk'
+      },
+      // Week 4
+      'Week4-Monday': {
+        snack: 'Wheat Halwa (less ghee)',
+        lunch: 'Rice + Sambar + Egg Curry',
+        evening: 'Steamed Banana'
+      },
+      'Week4-Tuesday': {
+        snack: 'Vegetable Rava Upma',
+        lunch: 'Rice + Moru Curry + Snake Gourd Thoran + Fish Curry / Soya Fry',
+        evening: 'Sweet Aval + Milk'
+      },
+      'Week4-Wednesday': {
+        snack: 'Boiled Green Gram with coconut',
+        lunch: 'Rice + Dal Curry + Pumpkin Erissery',
+        evening: 'Banana + Milk'
+      },
+      'Week4-Thursday': {
+        snack: 'Banana + Jaggery',
+        lunch: 'Rice + Drumstick Sambar + Spinach Thoran',
+        evening: 'Groundnut Chikki'
+      },
+      'Week4-Friday': {
+        snack: 'Idiyappam + Egg Curry (Veg: Potato Curry)',
+        lunch: 'Rice + Vegetable Kurma + Yam Stir Fry',
+        evening: 'Milk + Banana'
+      },
+      'Week4-Saturday': {
+        snack: 'Wheat Upma',
+        lunch: 'Rice + Pulissery + Beans Thoran + Curd',
+        evening: 'Roasted Chana with Jaggery'
+      }
+    },
+    currentStock: {
+      rice: { quantity: 25, unit: 'kg', minStock: 10 },
+      dal: { quantity: 15, unit: 'kg', minStock: 8 },
+      wheat: { quantity: 12, unit: 'kg', minStock: 5 },
+      vegetables: { quantity: 8, unit: 'kg', minStock: 3 },
+      milk: { quantity: 20, unit: 'liters', minStock: 10 }
+    }
+  });
+  const [showDistributionModal, setShowDistributionModal] = useState(false);
+  const [showMenuModal, setShowMenuModal] = useState(false);
+  const [showStockModal, setShowStockModal] = useState(false);
 
-  const handleLogout = () => {
-    localStorage.removeItem('userRole');
-    localStorage.removeItem('userName');
-    localStorage.removeItem('userEmail');
-    localStorage.removeItem('isAuthenticated');
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      console.log('🔐 AWW logout button clicked, starting logout process...');
+      
+      // Use sessionManager for complete cleanup
+      sessionManager.destroySession();
+      console.log('🧹 Session destroyed via sessionManager');
+
+      // Call logout service
+      await authService.logout();
+      console.log('✅ AuthService logout successful');
+      
+      // Redirect to login page
+      navigate('/login', { replace: true });
+      console.log('📍 Navigated to login page');
+      
+    } catch (error) {
+      console.error('❌ AWW logout error:', error);
+      // Force logout even if there's an error
+      console.log('🔧 Force clearing session data...');
+      sessionManager.destroySession();
+      navigate('/login', { replace: true });
+    }
   };
 
   // Registration handlers
@@ -216,7 +381,8 @@ const AWWDashboard = () => {
     { id: 'nutrition', label: 'Nutrition', icon: Utensils },
     { id: 'health', label: 'Health & Growth', icon: Heart },
     { id: 'waste', label: 'Waste Tracking', icon: TrendingUp },
-    { id: 'reports', label: 'Daily Reports', icon: FileText }
+    { id: 'reports', label: 'Daily Reports', icon: FileText },
+    { id: 'profile', label: 'My Profile', icon: User }
   ];
 
   const renderOverview = () => (
@@ -392,152 +558,253 @@ const AWWDashboard = () => {
     );
   };
 
-  const renderAttendance = () => (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-black">Daily Attendance</h2>
-      
-      <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-black">Today's Attendance - {new Date().toLocaleDateString()}</h3>
-          <div className="flex items-center space-x-4">
-            <span className="text-sm text-gray-600">Present: 38/45 (84%)</span>
-            <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
-              Mark All Present
-            </button>
-          </div>
-        </div>
+  const renderAttendance = () => {
+    // Get the anganwadi center from user info or use a default
+    // Try various sources for the center name
+    const anganwadiCenter = localStorage.getItem('anganwadiCenter') || 
+                           localStorage.getItem('userAnganwadiCenter') ||
+                           sessionStorage.getItem('anganwadiCenter') ||
+                           'Akkarakunnu Anganwadi'; // Use the actual center name from database
+    
+    console.log('🏢 Using anganwadi center for attendance:', anganwadiCenter);
+    
+    return <AttendanceManagement anganwadiCenter={anganwadiCenter} />;
+  };
+
+  const renderNutrition = () => {
+    const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+    
+    return (
+      <div className="space-y-6">
+        <h2 className="text-2xl font-bold text-black">Nutrition Distribution</h2>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[
-            { name: 'Aarav Kumar', age: '3 years', status: 'present' },
-            { name: 'Priya Sharma', age: '4 years', status: 'present' },
-            { name: 'Rahul Singh', age: '2 years', status: 'absent' },
-            { name: 'Anita Devi', age: '5 years', status: 'present' },
-            { name: 'Vikash Kumar', age: '3 years', status: 'late' },
-            { name: 'Sunita Rani', age: '4 years', status: 'present' }
-          ].map((child, index) => (
-            <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-              <div>
-                <p className="font-medium text-black">{child.name}</p>
-                <p className="text-sm text-gray-600">{child.age}</p>
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                  child.status === 'present' ? 'bg-green-100 text-green-800' :
-                  child.status === 'absent' ? 'bg-red-100 text-red-800' :
-                  'bg-yellow-100 text-yellow-800'
-                }`}>
-                  {child.status}
-                </span>
-                <button className="text-blue-600 hover:text-blue-800 text-sm">Edit</button>
-              </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <motion.div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-orange-600">Today's Distribution</h3>
+              <Utensils className="w-6 h-6 text-orange-500" />
             </div>
-          ))}
+            <p className="text-3xl font-bold text-black">{nutritionData.todayDistribution}/{nutritionData.totalChildren}</p>
+            <p className="text-sm text-gray-600">Children fed today</p>
+            <button 
+              onClick={() => setShowDistributionModal(true)}
+              className="mt-4 w-full bg-orange-50 text-orange-600 py-2 px-4 rounded-lg hover:bg-orange-100 transition-colors"
+            >
+              Log Distribution
+            </button>
+          </motion.div>
+
+          <motion.div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-green-600">Weekly Menu</h3>
+              <Calendar className="w-6 h-6 text-green-500" />
+            </div>
+            {(() => {
+              const currentWeek = 1; // This can be dynamic based on actual week
+              const todayMenuKey = `Week${currentWeek}-${today}`;
+              const todayMenuData = nutritionData.weeklyMenu[todayMenuKey];
+              
+              return (
+                <div className="space-y-2">
+                  <p className="text-sm text-black font-medium">Today's Menu ({today}):</p>
+                  {todayMenuData && (
+                    <div className="text-xs space-y-1">
+                      <div><span className="font-medium text-orange-600">Snack:</span> <span className="text-gray-700">{todayMenuData.snack}</span></div>
+                      <div><span className="font-medium text-green-600">Lunch:</span> <span className="text-gray-700">{todayMenuData.lunch}</span></div>
+                      <div><span className="font-medium text-blue-600">Evening:</span> <span className="text-gray-700">{todayMenuData.evening}</span></div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+            <button 
+              onClick={() => setShowMenuModal(true)}
+              className="mt-4 w-full bg-green-50 text-green-600 py-2 px-4 rounded-lg hover:bg-green-100 transition-colors"
+            >
+              View Menu
+            </button>
+          </motion.div>
+
+          <motion.div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-blue-600">Stock Status</h3>
+              <TrendingUp className="w-6 h-6 text-blue-500" />
+            </div>
+            <p className="text-sm text-black">Rice: {nutritionData.currentStock.rice.quantity}{nutritionData.currentStock.rice.unit}</p>
+            <p className="text-sm text-gray-600">Dal: {nutritionData.currentStock.dal.quantity}{nutritionData.currentStock.dal.unit}</p>
+            <button 
+              onClick={() => setShowStockModal(true)}
+              className="mt-4 w-full bg-blue-50 text-blue-600 py-2 px-4 rounded-lg hover:bg-blue-100 transition-colors"
+            >
+              Update Stock
+            </button>
+          </motion.div>
         </div>
-      </div>
-    </div>
-  );
 
-  const renderNutrition = () => (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-black">Nutrition Distribution</h2>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <motion.div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-orange-600">Today's Distribution</h3>
-            <Utensils className="w-6 h-6 text-orange-500" />
-          </div>
-          <p className="text-3xl font-bold text-black">45/45</p>
-          <p className="text-sm text-gray-600">Children fed today</p>
-          <button className="mt-4 w-full bg-orange-50 text-orange-600 py-2 px-4 rounded-lg hover:bg-orange-100">
-            Log Distribution
-          </button>
-        </motion.div>
-
-        <motion.div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-green-600">Weekly Menu</h3>
-            <Calendar className="w-6 h-6 text-green-500" />
-          </div>
-          <p className="text-sm text-black font-medium">Today: Rice & Dal</p>
-          <p className="text-sm text-gray-600">With vegetables</p>
-          <button className="mt-4 w-full bg-green-50 text-green-600 py-2 px-4 rounded-lg hover:bg-green-100">
-            View Menu
-          </button>
-        </motion.div>
-
-        <motion.div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-blue-600">Stock Status</h3>
-            <TrendingUp className="w-6 h-6 text-blue-500" />
-          </div>
-          <p className="text-sm text-black">Rice: 25kg</p>
-          <p className="text-sm text-gray-600">Dal: 15kg</p>
-          <button className="mt-4 w-full bg-blue-50 text-blue-600 py-2 px-4 rounded-lg hover:bg-blue-100">
-            Update Stock
-          </button>
-        </motion.div>
-      </div>
-    </div>
-  );
-
-  const renderHealth = () => (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-black">Health & Growth Monitoring</h2>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <motion.div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-          <h3 className="text-lg font-semibold text-black mb-4">Growth Monitoring</h3>
-          <div className="space-y-4">
-            {[
-              { name: 'Aarav Kumar', age: '3 years', weight: '12.5kg', height: '92cm', status: 'normal' },
-              { name: 'Priya Sharma', age: '4 years', weight: '14.2kg', height: '98cm', status: 'normal' },
-              { name: 'Rahul Singh', age: '2 years', weight: '9.8kg', height: '82cm', status: 'underweight' }
-            ].map((child, index) => (
-              <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+        {/* Distribution Modal */}
+        {showDistributionModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-white rounded-lg p-6 w-full max-w-md mx-4"
+            >
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">Log Nutrition Distribution</h3>
+              <div className="space-y-4">
                 <div>
-                  <p className="font-medium text-black">{child.name}</p>
-                  <p className="text-sm text-gray-600">{child.age} - {child.weight}, {child.height}</p>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Children Fed Today</label>
+                  <input 
+                    type="number" 
+                    value={nutritionData.todayDistribution}
+                    onChange={(e) => setNutritionData(prev => ({ ...prev, todayDistribution: parseInt(e.target.value) || 0 }))}
+                    max={nutritionData.totalChildren}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
                 </div>
-                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                  child.status === 'normal' ? 'bg-green-100 text-green-800' :
-                  'bg-yellow-100 text-yellow-800'
-                }`}>
-                  {child.status}
-                </span>
-              </div>
-            ))}
-          </div>
-        </motion.div>
-
-        <motion.div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-          <h3 className="text-lg font-semibold text-black mb-4">Vaccination Schedule</h3>
-          <div className="space-y-4">
-            {[
-              { name: 'Vikash Kumar', vaccine: 'DPT Booster', due: '2024-01-20', status: 'due' },
-              { name: 'Sunita Rani', vaccine: 'MMR', due: '2024-01-22', status: 'scheduled' },
-              { name: 'Amit Singh', vaccine: 'Polio', due: '2024-01-18', status: 'overdue' }
-            ].map((vaccination, index) => (
-              <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                 <div>
-                  <p className="font-medium text-black">{vaccination.name}</p>
-                  <p className="text-sm text-gray-600">{vaccination.vaccine} - {vaccination.due}</p>
+                  <p className="text-sm text-gray-600">Total enrolled children: {nutritionData.totalChildren}</p>
                 </div>
-                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                  vaccination.status === 'due' ? 'bg-yellow-100 text-yellow-800' :
-                  vaccination.status === 'scheduled' ? 'bg-blue-100 text-blue-800' :
-                  'bg-red-100 text-red-800'
-                }`}>
-                  {vaccination.status}
-                </span>
+                <div className="flex space-x-3">
+                  <button 
+                    onClick={() => {
+                      setShowDistributionModal(false);
+                      alert('Distribution logged successfully!');
+                    }}
+                    className="flex-1 bg-orange-600 text-white py-2 px-4 rounded-lg hover:bg-orange-700 transition-colors"
+                  >
+                    Save
+                  </button>
+                  <button 
+                    onClick={() => setShowDistributionModal(false)}
+                    className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
-            ))}
+            </motion.div>
           </div>
-        </motion.div>
+        )}
+
+        {/* Menu Modal */}
+        {showMenuModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-white rounded-lg p-6 w-full max-w-lg mx-4"
+            >
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">4-Week Nutritional Menu Plan</h3>
+              <div className="max-h-96 overflow-y-auto space-y-4">
+                {[1, 2, 3, 4].map(week => (
+                  <div key={week} className="border border-gray-200 rounded-lg p-3">
+                    <h4 className="font-semibold text-green-600 mb-3">Week {week}</h4>
+                    <div className="space-y-2">
+                      {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => {
+                        const menuKey = `Week${week}-${day}`;
+                        const menu = nutritionData.weeklyMenu[menuKey];
+                        const isToday = today === day && week === 1; // Assuming we're in week 1
+                        
+                        return (
+                          <div key={day} className={`p-2 rounded-lg ${isToday ? 'bg-green-50 border border-green-200' : 'bg-gray-50'}`}>
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="font-medium text-gray-900">{day}</span>
+                              {isToday && <span className="text-xs bg-green-600 text-white px-2 py-1 rounded">Today</span>}
+                            </div>
+                            <div className="text-xs space-y-1">
+                              <div><span className="font-medium text-orange-600">Snack:</span> <span className="text-gray-600">{menu.snack}</span></div>
+                              <div><span className="font-medium text-green-600">Lunch:</span> <span className="text-gray-600">{menu.lunch}</span></div>
+                              <div><span className="font-medium text-blue-600">Evening:</span> <span className="text-gray-600">{menu.evening}</span></div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <button 
+                onClick={() => setShowMenuModal(false)}
+                className="mt-4 w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors"
+              >
+                Close
+              </button>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Stock Modal */}
+        {showStockModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-white rounded-lg p-6 w-full max-w-lg mx-4"
+            >
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">Update Stock Status</h3>
+              <div className="space-y-4">
+                {Object.entries(nutritionData.currentStock).map(([item, data]) => (
+                  <div key={item} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex-1">
+                      <span className="font-medium text-gray-900 capitalize">{item}</span>
+                      <p className="text-xs text-gray-500">Min stock: {data.minStock} {data.unit}</p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input 
+                        type="number" 
+                        value={data.quantity}
+                        onChange={(e) => setNutritionData(prev => ({
+                          ...prev,
+                          currentStock: {
+                            ...prev.currentStock,
+                            [item]: { ...prev.currentStock[item], quantity: parseInt(e.target.value) || 0 }
+                          }
+                        }))}
+                        className="w-16 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-600">{data.unit}</span>
+                      {data.quantity <= data.minStock && (
+                        <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded">Low</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex space-x-3 mt-6">
+                <button 
+                  onClick={() => {
+                    setShowStockModal(false);
+                    alert('Stock updated successfully!');
+                  }}
+                  className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Update Stock
+                </button>
+                <button 
+                  onClick={() => setShowStockModal(false)}
+                  className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
       </div>
-    </div>
-  );
+    );
+  };
+
+  const renderHealth = () => {
+    // Get the anganwadi center from user info or use a default
+    const anganwadiCenter = localStorage.getItem('anganwadiCenter') || 
+                           localStorage.getItem('userAnganwadiCenter') ||
+                           sessionStorage.getItem('anganwadiCenter') ||
+                           'Akkarakunnu Anganwadi'; // Use the actual center name from database
+    
+    console.log('🏥 Using anganwadi center for health monitoring:', anganwadiCenter);
+    
+    return <HealthGrowthMonitoring anganwadiCenter={anganwadiCenter} />;
+  };
 
   const renderWasteTracking = () => (
     <div className="space-y-6">
@@ -668,6 +935,8 @@ const AWWDashboard = () => {
         return renderWasteTracking();
       case 'reports':
         return renderReports();
+      case 'profile':
+        return <AWWProfile />;
       default:
         return renderOverview();
     }

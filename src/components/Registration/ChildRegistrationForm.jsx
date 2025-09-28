@@ -9,7 +9,9 @@ import {
   Calendar,
   Save,
   X,
-  AlertCircle
+  AlertCircle,
+  Upload,
+  FileText
 } from 'lucide-react';
 
 const ChildRegistrationForm = ({ onSubmit, onCancel, isLoading = false }) => {
@@ -30,6 +32,7 @@ const ChildRegistrationForm = ({ onSubmit, onCancel, isLoading = false }) => {
       pincode: ''
     },
     anganwadiCenter: '',
+    birthCertificate: null,
     birthWeight: '',
     currentWeight: '',
     currentHeight: '',
@@ -96,6 +99,42 @@ const ChildRegistrationForm = ({ onSubmit, onCancel, isLoading = false }) => {
         allergies: prev.medicalHistory.allergies.filter((_, i) => i !== index)
       }
     }));
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type (PNG only)
+      if (file.type !== 'image/png') {
+        setErrors(prev => ({
+          ...prev,
+          birthCertificate: 'Please upload a PNG image file only'
+        }));
+        return;
+      }
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setErrors(prev => ({
+          ...prev,
+          birthCertificate: 'File size must be less than 5MB'
+        }));
+        return;
+      }
+
+      setFormData(prev => ({
+        ...prev,
+        birthCertificate: file
+      }));
+      
+      // Clear any previous errors
+      if (errors.birthCertificate) {
+        setErrors(prev => ({
+          ...prev,
+          birthCertificate: ''
+        }));
+      }
+    }
   };
 
   const validateForm = () => {
@@ -253,6 +292,61 @@ const ChildRegistrationForm = ({ onSubmit, onCancel, isLoading = false }) => {
               placeholder="Enter anganwadi center name"
             />
             {errors.anganwadiCenter && <p className={errorClass}>{errors.anganwadiCenter}</p>}
+          </div>
+
+          {/* Birth Certificate Upload */}
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Birth Certificate (PNG format only)
+            </label>
+            <div className="relative">
+              <div className={`${inputClass} flex items-center justify-center border-2 border-dashed ${
+                formData.birthCertificate ? 'border-green-300 bg-green-50' : 'border-gray-300 bg-gray-50'
+              } hover:border-blue-400 transition-colors cursor-pointer`}>
+                <label className="flex flex-col items-center justify-center w-full h-32 cursor-pointer">
+                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                    {formData.birthCertificate ? (
+                      <>
+                        <FileText className="w-8 h-8 text-green-500 mb-2" />
+                        <p className="text-sm text-green-600 font-medium">
+                          {formData.birthCertificate.name}
+                        </p>
+                        <p className="text-xs text-green-500">
+                          ({(formData.birthCertificate.size / 1024 / 1024).toFixed(2)} MB)
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                        <p className="text-sm text-gray-500">
+                          <span className="font-semibold">Click to upload</span> birth certificate
+                        </p>
+                        <p className="text-xs text-gray-400">PNG format only, max 5MB</p>
+                      </>
+                    )}
+                  </div>
+                  <input
+                    type="file"
+                    accept=".png,image/png"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+            </div>
+            {errors.birthCertificate && <p className={errorClass}>{errors.birthCertificate}</p>}
+            {formData.birthCertificate && (
+              <div className="mt-2 flex items-center justify-between bg-green-50 p-2 rounded">
+                <span className="text-sm text-green-700">File uploaded successfully</span>
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, birthCertificate: null }))}
+                  className="text-red-500 hover:text-red-700 text-sm font-medium"
+                >
+                  Remove
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

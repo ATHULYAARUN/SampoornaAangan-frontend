@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, User, Mail, Phone, MapPin, Briefcase, Building, Save, AlertCircle, Key, Eye, EyeOff } from 'lucide-react';
+import { X, User, Mail, Phone, MapPin, Briefcase, Building, Save, AlertCircle, Key, Eye, EyeOff, Calendar, Upload, UserCheck, Contact } from 'lucide-react';
 
 const CreateWorkerModal = ({ worker, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
@@ -8,9 +8,29 @@ const CreateWorkerModal = ({ worker, onClose, onSuccess }) => {
     email: worker?.email || '',
     phone: worker?.phone || '',
     role: worker?.role || 'anganwadi-worker',
+    
+    // New fields for enhanced Anganwadi Worker form
+    gender: worker?.gender || '',
+    dateOfBirth: worker?.dateOfBirth || '',
+    qualification: worker?.qualification || '',
+    
+    // Employment Details
+    dateOfJoining: worker?.dateOfJoining || '',
+    designation: worker?.designation || '',
+    experience: worker?.experience || '',
+    
+    // Emergency Contact
+    alternatePhone: worker?.alternatePhone || '',
+    emergencyContactPerson: worker?.emergencyContactPerson || '',
+    
+    // File uploads
+    workerPhoto: null,
+    
+    // Password configuration
     useCustomPassword: false,
     customPassword: '',
     confirmPassword: '',
+    
     address: {
       street: worker?.address?.street || '',
       city: worker?.address?.city || '',
@@ -43,6 +63,7 @@ const CreateWorkerModal = ({ worker, onClose, onSuccess }) => {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [photoPreview, setPhotoPreview] = useState(null);
 
   const workerRoles = [
     { 
@@ -64,6 +85,69 @@ const CreateWorkerModal = ({ worker, onClose, onSuccess }) => {
       description: 'Maintains hygiene and sanitation facilities'
     }
   ];
+
+  const genderOptions = [
+    { value: '', label: 'Select Gender' },
+    { value: 'female', label: 'Female' },
+    { value: 'male', label: 'Male' },
+    { value: 'other', label: 'Other' }
+  ];
+
+  const qualificationOptions = [
+    { value: '', label: 'Select Qualification' },
+    { value: '10th-pass', label: '10th Pass' },
+    { value: '12th-pass', label: '12th Pass' },
+    { value: 'graduate', label: 'Graduate' },
+    { value: 'postgraduate', label: 'Postgraduate' }
+  ];
+
+  const designationOptions = [
+    { value: '', label: 'Select Designation' },
+    { value: 'worker', label: 'Worker' },
+    { value: 'helper', label: 'Helper' },
+    { value: 'supervisor', label: 'Supervisor' }
+  ];
+
+  // Helper function to calculate age from date of birth
+  const calculateAge = (dateOfBirth) => {
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDifference = today.getMonth() - birthDate.getMonth();
+    
+    if (monthDifference < 0 || (monthDifference === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    
+    return age;
+  };
+
+  // Handle file upload
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+      if (!allowedTypes.includes(file.type)) {
+        setError('Please upload only JPG or PNG images');
+        return;
+      }
+      
+      // Validate file size (max 5MB)
+      const maxSize = 5 * 1024 * 1024;
+      if (file.size > maxSize) {
+        setError('File size should be less than 5MB');
+        return;
+      }
+      
+      setFormData(prev => ({ ...prev, workerPhoto: file }));
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => setPhotoPreview(e.target.result);
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -176,24 +260,82 @@ const CreateWorkerModal = ({ worker, onClose, onSuccess }) => {
   };
 
   const validateForm = () => {
+    // Basic Information Validation
     if (!formData.name.trim()) {
-      setError('Name is required');
+      setError('Full name is required');
       return false;
     }
     if (!formData.email.trim()) {
-      setError('Email is required');
+      setError('Email address is required');
       return false;
     }
     if (!/\S+@\S+\.\S+/.test(formData.email)) {
       setError('Please enter a valid email address');
       return false;
     }
+    if (!formData.phone.trim()) {
+      setError('Phone number is required');
+      return false;
+    }
+    if (!/^\d{10}$/.test(formData.phone.replace(/\D/g, ''))) {
+      setError('Please enter a valid 10-digit phone number');
+      return false;
+    }
     if (!formData.role) {
       setError('Role is required');
       return false;
     }
-    if (formData.phone && !/^\d{10}$/.test(formData.phone.replace(/\D/g, ''))) {
-      setError('Please enter a valid 10-digit phone number');
+
+    // Enhanced validations for Anganwadi Worker
+    if (formData.role === 'anganwadi-worker') {
+      // Gender validation - Only female allowed
+      if (!formData.gender) {
+        setError('Gender is required');
+        return false;
+      }
+      if (formData.gender !== 'female') {
+        setError('Only female staff are allowed to be registered as Anganwadi workers.');
+        return false;
+      }
+
+      // Date of Birth validation
+      if (!formData.dateOfBirth) {
+        setError('Date of Birth is required');
+        return false;
+      }
+      
+      const age = calculateAge(formData.dateOfBirth);
+      if (age < 18) {
+        setError('Worker must be at least 18 years old');
+        return false;
+      }
+
+      // Qualification validation
+      if (!formData.qualification) {
+        setError('Qualification is required');
+        return false;
+      }
+
+      // Employment Details validation
+      if (!formData.dateOfJoining) {
+        setError('Date of Joining is required');
+        return false;
+      }
+      if (!formData.designation) {
+        setError('Designation is required');
+        return false;
+      }
+
+      // Anganwadi Center validation
+      if (!formData.roleSpecificData?.anganwadiCenter?.name) {
+        setError('Please select an Anganwadi Center');
+        return false;
+      }
+    }
+
+    // Alternate phone validation (if provided)
+    if (formData.alternatePhone && !/^\d{10}$/.test(formData.alternatePhone.replace(/\D/g, ''))) {
+      setError('Please enter a valid 10-digit alternate phone number');
       return false;
     }
     
@@ -213,12 +355,6 @@ const CreateWorkerModal = ({ worker, onClose, onSuccess }) => {
       }
     }
     
-    // Role-specific validation
-    if (formData.role === 'anganwadi-worker') {
-      // Anganwadi Center Name and Code are pre-filled, so no validation needed
-      // They are automatically set to default values for this system
-    }
-    
     return true;
   };
 
@@ -231,12 +367,29 @@ const CreateWorkerModal = ({ worker, onClose, onSuccess }) => {
     setError('');
 
     try {
-      // Ensure all required fields are included
+      // Prepare form data for submission
       const submitData = {
+        // Basic Information
         name: formData.name.trim(),
         email: formData.email.toLowerCase().trim(),
         phone: formData.phone.trim(),
         role: formData.role,
+        
+        // Enhanced fields for Anganwadi Worker
+        gender: formData.gender,
+        dateOfBirth: formData.dateOfBirth,
+        qualification: formData.qualification,
+        
+        // Employment Details
+        dateOfJoining: formData.dateOfJoining,
+        designation: formData.designation,
+        experience: formData.experience ? parseInt(formData.experience) : undefined,
+        
+        // Emergency Contact
+        alternatePhone: formData.alternatePhone.trim(),
+        emergencyContactPerson: formData.emergencyContactPerson.trim(),
+        
+        // Address Information
         address: {
           street: formData.address.street || '',
           city: formData.address.city || '',
@@ -245,7 +398,11 @@ const CreateWorkerModal = ({ worker, onClose, onSuccess }) => {
           district: formData.address.district || '',
           block: formData.address.block || ''
         },
+        
+        // Role-specific data
         roleSpecificData: formData.roleSpecificData || {},
+        
+        // Password Configuration
         useCustomPassword: formData.useCustomPassword,
         customPassword: formData.useCustomPassword ? formData.customPassword : undefined
       };
@@ -258,13 +415,39 @@ const CreateWorkerModal = ({ worker, onClose, onSuccess }) => {
       
       const method = worker ? 'PUT' : 'POST';
 
+      let requestBody;
+      let headers = {
+        'Authorization': `Bearer ${localStorage.getItem('adminToken') || localStorage.getItem('token')}`
+      };
+
+      // Handle file upload with FormData if photo is present
+      if (formData.workerPhoto) {
+        const formDataWithFile = new FormData();
+        
+        // Append all form fields
+        Object.keys(submitData).forEach(key => {
+          if (key === 'address' || key === 'roleSpecificData') {
+            formDataWithFile.append(key, JSON.stringify(submitData[key]));
+          } else if (submitData[key] !== undefined && submitData[key] !== null) {
+            formDataWithFile.append(key, submitData[key]);
+          }
+        });
+        
+        // Append the photo file
+        formDataWithFile.append('workerPhoto', formData.workerPhoto);
+        
+        requestBody = formDataWithFile;
+        // Don't set Content-Type header for FormData, let browser set it
+      } else {
+        // Standard JSON submission
+        headers['Content-Type'] = 'application/json';
+        requestBody = JSON.stringify(submitData);
+      }
+
       const response = await fetch(url, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('adminToken') || localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(submitData)
+        headers,
+        body: requestBody
       });
 
       const data = await response.json();
@@ -513,10 +696,10 @@ const CreateWorkerModal = ({ worker, onClose, onSuccess }) => {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xl font-bold">
-                {worker ? 'Edit Worker Account' : 'Create New Worker Account'}
+                {worker ? 'Edit Worker Account' : 'Create New Anganwadi Worker Account'}
               </h2>
               <p className="text-primary-100 text-sm mt-1">
-                {worker ? 'Update worker information' : 'Add a new worker to the system'}
+                {worker ? 'Update worker information' : 'Register a new Anganwadi worker with comprehensive details'}
               </p>
             </div>
             <button
@@ -571,7 +754,7 @@ const CreateWorkerModal = ({ worker, onClose, onSuccess }) => {
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Phone Number
+                    Phone Number *
                   </label>
                   <input
                     type="tel"
@@ -580,6 +763,7 @@ const CreateWorkerModal = ({ worker, onClose, onSuccess }) => {
                     onChange={handleChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     placeholder="Enter phone number"
+                    required
                   />
                 </div>
                 
@@ -591,18 +775,138 @@ const CreateWorkerModal = ({ worker, onClose, onSuccess }) => {
                     name="role"
                     value={formData.role}
                     onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    required
+                    disabled
+                  >
+                    <option value="anganwadi-worker">👶 Anganwadi Worker</option>
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Pre-set to Anganwadi Worker
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Gender * <span className="text-red-500">(Female Only)</span>
+                  </label>
+                  <select
+                    name="gender"
+                    value={formData.gender}
+                    onChange={handleChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     required
                   >
-                    {workerRoles.map(role => (
-                      <option key={role.id} value={role.id}>
-                        {role.icon} {role.name}
+                    {genderOptions.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
                       </option>
                     ))}
                   </select>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {workerRoles.find(r => r.id === formData.role)?.description}
-                  </p>
+                  {formData.gender && formData.gender !== 'female' && (
+                    <p className="text-xs text-red-600 mt-1">
+                      ⚠️ Only female staff are allowed to be registered as Anganwadi workers.
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Date of Birth *
+                  </label>
+                  <input
+                    type="date"
+                    name="dateOfBirth"
+                    value={formData.dateOfBirth}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    required
+                    max={new Date(Date.now() - 18 * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
+                  />
+                  {formData.dateOfBirth && calculateAge(formData.dateOfBirth) < 18 && (
+                    <p className="text-xs text-red-600 mt-1">
+                      Worker must be at least 18 years old
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Qualification *
+                  </label>
+                  <select
+                    name="qualification"
+                    value={formData.qualification}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    required
+                  >
+                    {qualificationOptions.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Employment Details */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <Briefcase className="w-5 h-5" />
+                Employment Details
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Date of Joining *
+                  </label>
+                  <input
+                    type="date"
+                    name="dateOfJoining"
+                    value={formData.dateOfJoining}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    required
+                    max={new Date().toISOString().split('T')[0]}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Designation *
+                  </label>
+                  <select
+                    name="designation"
+                    value={formData.designation}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    required
+                  >
+                    {designationOptions.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Experience (Years)
+                  </label>
+                  <input
+                    type="number"
+                    name="experience"
+                    value={formData.experience}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    placeholder="Enter years of experience"
+                    min="0"
+                    max="50"
+                  />
                 </div>
               </div>
             </div>
@@ -790,6 +1094,94 @@ const CreateWorkerModal = ({ worker, onClose, onSuccess }) => {
                   />
                   <p className="text-xs text-gray-500 mt-1">Auto-filled based on Anganwadi center selection</p>
                 </div>
+              </div>
+            </div>
+
+            {/* Emergency Contact */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <Contact className="w-5 h-5" />
+                Emergency Contact
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Alternate Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    name="alternatePhone"
+                    value={formData.alternatePhone}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    placeholder="Enter alternate phone number"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Emergency Contact Person
+                  </label>
+                  <input
+                    type="text"
+                    name="emergencyContactPerson"
+                    value={formData.emergencyContactPerson}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    placeholder="Enter emergency contact person name"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Worker Photo Upload */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <Upload className="w-5 h-5" />
+                Worker Photo (Optional)
+              </h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Upload Photo
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png"
+                    onChange={handleFileUpload}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Upload JPG or PNG image (max 5MB)
+                  </p>
+                </div>
+
+                {photoPreview && (
+                  <div className="flex items-center gap-4">
+                    <div className="flex-shrink-0">
+                      <img
+                        src={photoPreview}
+                        alt="Worker photo preview"
+                        className="w-20 h-20 object-cover rounded-lg border border-gray-300"
+                      />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-700">Photo preview</p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData(prev => ({ ...prev, workerPhoto: null }));
+                          setPhotoPreview(null);
+                        }}
+                        className="text-xs text-red-600 hover:text-red-700"
+                      >
+                        Remove photo
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

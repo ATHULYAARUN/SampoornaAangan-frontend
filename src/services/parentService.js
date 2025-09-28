@@ -1,21 +1,35 @@
 import { auth } from '../config/firebase';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 class ParentService {
   // Helper method to get auth headers
   async getAuthHeaders() {
     try {
+      // First try to get Firebase token
       const user = auth.currentUser;
-      if (!user) {
-        throw new Error('User not authenticated');
+      if (user) {
+        const idToken = await user.getIdToken();
+        return {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        };
       }
       
-      const idToken = await user.getIdToken();
-      return {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${idToken}`
-      };
+      // If no Firebase user, check for JWT token in localStorage
+      const authToken = localStorage.getItem('authToken');
+      const firebaseToken = localStorage.getItem('firebaseToken');
+      const jwtToken = authToken || firebaseToken;
+      
+      if (jwtToken) {
+        console.log('🔑 Using stored token for authentication:', jwtToken.substring(0, 20) + '...');
+        return {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${jwtToken}`
+        };
+      }
+      
+      throw new Error('User not authenticated - no Firebase user or JWT token found');
     } catch (error) {
       console.error('Error getting auth headers:', error);
       throw new Error('Authentication failed');
@@ -37,21 +51,44 @@ class ParentService {
   async getMyChildren() {
     try {
       console.log('👨‍👩‍👧‍👦 Fetching my children...');
+      console.log('🔍 User info from localStorage:', {
+        email: localStorage.getItem('userEmail'),
+        name: localStorage.getItem('userName'),
+        role: localStorage.getItem('userRole'),
+        hasAuthToken: !!localStorage.getItem('authToken'),
+        hasFirebaseToken: !!localStorage.getItem('firebaseToken')
+      });
       
       const headers = await this.getAuthHeaders();
+      console.log('📤 Making request to:', `${API_BASE_URL}/registration/my-children`);
       
       const response = await fetch(`${API_BASE_URL}/registration/my-children`, {
         method: 'GET',
         headers
       });
 
-      const result = await this.handleResponse(response);
+      console.log('📥 Response status:', response.status);
       
-      console.log('✅ Successfully fetched children:', result.data.children.length);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Server error - unable to parse response' }));
+        console.error('❌ API Error:', errorData);
+        throw new Error(errorData.message || `HTTP ${response.status}: Failed to fetch children`);
+      }
+
+      const result = await response.json();
+      console.log('✅ Raw API response:', result);
+      
+      const childrenCount = result.data?.children?.length || 0;
+      console.log(`✅ Successfully fetched ${childrenCount} children`);
+      
       return result;
       
     } catch (error) {
       console.error('❌ Failed to fetch children:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        stack: error.stack
+      });
       throw error;
     }
   }
@@ -82,8 +119,11 @@ class ParentService {
   // Get parent dashboard statistics
   async getParentStats() {
     try {
+      console.log('📊 Fetching parent dashboard statistics...');
       const childrenData = await this.getMyChildren();
-      const children = childrenData.data.children;
+      const children = childrenData.data?.children || [];
+      
+      console.log(`📈 Processing stats for ${children.length} children`);
       
       // Calculate statistics
       const totalChildren = children.length;
@@ -99,7 +139,7 @@ class ParentService {
       // Count pending vaccinations
       const pendingVaccinations = children.filter(child => child.vaccinationStatus === 'pending').length;
 
-      return {
+      const stats = {
         totalChildren,
         healthyChildren,
         attendanceRate,
@@ -107,21 +147,35 @@ class ParentService {
         upToDateVaccinations,
         averageAge,
         children: children.map(child => ({
-          id: child._id,
-          name: child.name,
-          age: child.ageDisplay,
-          healthStatus: child.healthStatus,
-          vaccinationStatus: child.vaccinationStatus,
-          nutritionStatus: child.nutritionStatus,
-          anganwadiCenter: child.anganwadiCenter,
-          lastCheckup: child.updatedAt,
-          nextCheckup: child.nextCheckup
+          id: child._id || child.id,
+          name: child.name || 'Unknown',
+          age: child.ageDisplay || child.age || 'Unknown',
+          healthStatus: child.healthStatus || 'pending',
+          vaccinationStatus: child.vaccinationStatus || 'pending',
+          nutritionStatus: child.nutritionStatus || 'normal',
+          anganwadiCenter: child.anganwadiCenter || 'Not assigned',
+          lastCheckup: child.updatedAt || new Date(),
+          nextCheckup: child.nextCheckup || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
         }))
       };
+
+      console.log('✅ Parent stats calculated:', stats);
+      return stats;
       
     } catch (error) {
       console.error('❌ Failed to fetch parent stats:', error);
-      throw error;
+      
+      // Return default stats if there's an error
+      console.log('📊 Returning default stats due to error');
+      return {
+        totalChildren: 0,
+        healthyChildren: 0,
+        attendanceRate: 0,
+        pendingVaccinations: 0,
+        upToDateVaccinations: 0,
+        averageAge: 0,
+        children: []
+      };
     }
   }
 

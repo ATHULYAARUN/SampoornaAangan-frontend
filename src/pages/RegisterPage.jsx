@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Baby, User, Mail, Lock, Eye, EyeOff, MapPin, Phone, Users, Heart, GraduationCap, UserCheck, Trash2, Shield, CheckCircle, AlertCircle } from 'lucide-react';
+import { Baby, User, Mail, Lock, Eye, EyeOff, MapPin, Phone, Users, Heart, GraduationCap, UserCheck, Trash2, Shield, CheckCircle, AlertCircle, Calendar, Home, Building, Briefcase, DollarSign, Plus, X } from 'lucide-react';
 import authService from '../services/authService';
-import GoogleSignIn from '../components/auth/GoogleSignIn';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -20,13 +19,32 @@ const RegisterPage = () => {
     pincode: '',
     password: '',
     confirmPassword: '',
-    // Role-specific fields
+    // Enhanced Parent/Guardian fields
+    gender: '',
+    dateOfBirth: '',
+    relationToChild: '',
+    address: {
+      house: '',
+      street: '',
+      ward: '',
+      city: '',
+      state: '',
+      pincode: ''
+    },
+    // Family/Child Details
+    numberOfChildren: '',
+    children: [],
+    linkedAnganwadiCenter: '',
+    // Additional Information
+    occupation: '',
+    educationLevel: '',
+    incomeBracket: '',
+    // Role-specific fields (legacy compatibility)
     workerId: '',
     qualification: '',
     experience: '',
     childAge: '',
     parentName: '',
-    relationToChild: '',
     age: '',
     schoolName: '',
     grade: ''
@@ -34,7 +52,6 @@ const RegisterPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
-  const [isFormValid, setIsFormValid] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
 
   // Only allow self-registration for parents and adolescent girls
@@ -60,17 +77,60 @@ const RegisterPage = () => {
 
   const anganwadiCenters = [
     {
-      name: 'Akkarakunnu Anganwadi Center',
+      name: 'Akkarakunnu Anganwadi',
       code: 'AK34',
       location: 'Elangulam, Kottayam, Kerala',
       pincode: '686522'
     },
     {
-      name: 'Veliyanoor Anganwadi Center',
+      name: 'Veliyanoor Anganwadi',
       code: 'AK35',
       location: 'Veliyanoor, Kottayam, Kerala',
       pincode: '686522'
     }
+  ];
+
+  const educationLevels = [
+    'No formal education',
+    'Primary (1st-5th)',
+    'Middle (6th-8th)',
+    'Secondary (9th-10th)',
+    'Higher Secondary (11th-12th)',
+    'Graduate',
+    'Post Graduate',
+    'Professional Course'
+  ];
+
+  const occupations = [
+    'Homemaker',
+    'Agriculture/Farming',
+    'Daily wage worker',
+    'Government employee',
+    'Private employee',
+    'Self-employed/Business',
+    'Unemployed',
+    'Retired',
+    'Student',
+    'Other'
+  ];
+
+  const incomeBrackets = [
+    'Below ₹1 Lakh (Low)',
+    '₹1-3 Lakhs (Lower Middle)',
+    '₹3-5 Lakhs (Middle)',
+    '₹5-10 Lakhs (Upper Middle)',
+    'Above ₹10 Lakhs (High)'
+  ];
+
+  const relationOptions = [
+    'Mother',
+    'Father',
+    'Grandmother',
+    'Grandfather',
+    'Aunt',
+    'Uncle',
+    'Guardian',
+    'Other'
   ];
 
   const handleRoleSelect = (roleId) => {
@@ -81,18 +141,71 @@ const RegisterPage = () => {
     });
   };
 
-  const handleGoogleSuccess = (result) => {
-    if (result.isNewUser) {
-      alert(`Welcome ${result.data.user.name}! Your account has been created successfully with Google.`);
-    } else {
-      alert(`Welcome back ${result.data.user.name}! You've been signed in.`);
-    }
-    navigate(result.dashboard);
+  // Helper functions for managing children
+  const addChild = () => {
+    setFormData(prev => ({
+      ...prev,
+      children: [...prev.children, { name: '', age: '' }]
+    }));
   };
 
-  const handleGoogleError = (errorMessage) => {
-    setError(errorMessage);
+  const removeChild = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      children: prev.children.filter((_, i) => i !== index)
+    }));
   };
+
+  const updateChild = (index, field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      children: prev.children.map((child, i) => 
+        i === index ? { ...child, [field]: value } : child
+      )
+    }));
+  };
+
+  // Enhanced validation function
+  const validateForm = useCallback(() => {
+    const errors = {};
+    
+    // Basic validation
+    if (!formData.name.trim()) errors.name = 'Full name is required';
+    if (!formData.email.trim()) errors.email = 'Email is required';
+    if (!formData.phone.trim()) errors.phone = 'Phone number is required';
+    if (!formData.password) errors.password = 'Password is required';
+    if (formData.password !== formData.confirmPassword) errors.confirmPassword = 'Passwords do not match';
+    
+    // Parent-specific validation
+    if (selectedRole === 'parent') {
+      if (!formData.gender) errors.gender = 'Gender is required';
+      if (!formData.dateOfBirth) errors.dateOfBirth = 'Date of birth is required';
+      if (!formData.relationToChild) errors.relationToChild = 'Relation to child is required';
+      if (!formData.address.house.trim()) errors['address.house'] = 'House/Building number is required';
+      if (!formData.address.street.trim()) errors['address.street'] = 'Street address is required';
+      if (!formData.address.ward.trim()) errors['address.ward'] = 'Ward is required';
+      if (!formData.address.city.trim()) errors['address.city'] = 'City is required';
+      if (!formData.address.state.trim()) errors['address.state'] = 'State is required';
+      if (!formData.address.pincode.trim()) errors['address.pincode'] = 'Pincode is required';
+      if (!formData.numberOfChildren) errors.numberOfChildren = 'Number of children is required';
+      if (!formData.linkedAnganwadiCenter) errors.linkedAnganwadiCenter = 'Linked Anganwadi Center is required';
+      
+      // Children validation
+      if (formData.children.length === 0 && parseInt(formData.numberOfChildren) > 0) {
+        errors.children = 'Please add child details';
+      }
+      
+      formData.children.forEach((child, index) => {
+        if (!child.name.trim()) errors[`child_${index}_name`] = `Child ${index + 1} name is required`;
+        if (!child.age || parseInt(child.age) < 3) errors[`child_${index}_age`] = `Child ${index + 1} must be at least 3 years old for admission`;
+      });
+    }
+    
+    if (!termsAccepted) errors.terms = 'You must accept the Terms of Service and Privacy Policy';
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  }, [formData, selectedRole, termsAccepted]);
 
   // Validation functions
   const validateField = (name, value) => {
@@ -100,12 +213,13 @@ const RegisterPage = () => {
 
     switch (name) {
       case 'name':
+      case 'parentName':
         if (!value.trim()) {
-          errors.name = 'Full name is required';
+          errors[name] = 'Full name is required';
         } else if (value.trim().length < 3) {
-          errors.name = 'Name must be at least 3 characters long';
+          errors[name] = 'Name must be at least 3 characters long';
         } else if (!/^[a-zA-Z\s]+$/.test(value.trim())) {
-          errors.name = 'Name can only contain letters and spaces';
+          errors[name] = 'Name can only contain letters and spaces';
         }
         break;
 
@@ -118,20 +232,125 @@ const RegisterPage = () => {
         break;
 
       case 'phone':
+      case 'alternatePhone':
         if (!value.trim()) {
-          errors.phone = 'Phone number is required';
+          errors[name] = 'Phone number is required';
         } else if (!/^\d{10}$/.test(value.trim())) {
-          errors.phone = 'Phone number must be exactly 10 digits';
+          errors[name] = 'Phone number must be exactly 10 digits';
         } else if (value.trim() === '0000000000') {
-          errors.phone = 'Phone number cannot be all zeros';
+          errors[name] = 'Phone number cannot be all zeros';
         }
         break;
 
       case 'pincode':
+      case 'address.pincode':
         if (!value.trim()) {
-          errors.pincode = 'Pincode is required';
+          errors[name] = 'Pincode is required';
         } else if (!/^\d{6}$/.test(value.trim())) {
-          errors.pincode = 'Pincode must be exactly 6 digits';
+          errors[name] = 'Pincode must be exactly 6 digits';
+        }
+        break;
+
+      case 'dateOfBirth':
+        if (!value) {
+          errors.dateOfBirth = 'Date of birth is required';
+        } else {
+          const birthDate = new Date(value);
+          const today = new Date();
+          const age = today.getFullYear() - birthDate.getFullYear();
+          if (age < 18 || age > 100) {
+            errors.dateOfBirth = 'Age must be between 18 and 100 years';
+          }
+        }
+        break;
+
+      case 'age':
+        if (!value) {
+          errors.age = 'Age is required';
+        } else if (parseInt(value) < 18 || parseInt(value) > 100) {
+          errors.age = 'Age must be between 18 and 100 years';
+        }
+        break;
+
+      case 'gender':
+        if (!value) {
+          errors.gender = 'Gender is required';
+        }
+        break;
+
+      case 'educationLevel':
+        if (!value) {
+          errors.educationLevel = 'Education level is required';
+        }
+        break;
+
+      case 'primaryLanguage':
+        if (!value.trim()) {
+          errors.primaryLanguage = 'Primary language is required';
+        }
+        break;
+
+      case 'identityProof':
+        if (!value.trim()) {
+          errors.identityProof = 'Identity proof number is required';
+        } else if (value.trim().length < 10) {
+          errors.identityProof = 'Identity proof must be at least 10 characters';
+        }
+        break;
+
+      case 'maritalStatus':
+        if (!value) {
+          errors.maritalStatus = 'Marital status is required';
+        }
+        break;
+
+      case 'spouseName':
+        if (formData.maritalStatus === 'married' && !value.trim()) {
+          errors.spouseName = 'Spouse name is required for married individuals';
+        } else if (value.trim() && !/^[a-zA-Z\s]+$/.test(value.trim())) {
+          errors.spouseName = 'Spouse name can only contain letters and spaces';
+        }
+        break;
+
+      case 'occupation':
+        if (!value) {
+          errors.occupation = 'Occupation is required';
+        }
+        break;
+
+      case 'monthlyIncome':
+        if (!value) {
+          errors.monthlyIncome = 'Monthly income is required';
+        }
+        break;
+
+      case 'numberOfChildren':
+        if (!value || parseInt(value) < 0) {
+          errors.numberOfChildren = 'Number of children must be 0 or greater';
+        }
+        break;
+
+      case 'linkedAnganwadiCenter':
+        if (!value) {
+          errors.linkedAnganwadiCenter = 'Please select an Anganwadi center';
+        }
+        break;
+
+      case 'address.street':
+        if (!value.trim()) {
+          errors['address.street'] = 'Street address is required';
+        }
+        break;
+
+      case 'address.city':
+        if (!value.trim()) {
+          errors['address.city'] = 'City is required';
+        }
+        break;
+
+      case 'address.state':
+        if (!value.trim()) {
+          errors['address.state'] = 'State is required';
         }
         break;
 
@@ -154,36 +373,36 @@ const RegisterPage = () => {
         break;
 
       default:
+        // Handle dynamic child field validations
+        if (name.startsWith('child_') && name.endsWith('_name')) {
+          if (!value.trim()) {
+            errors[name] = 'Child name is required';
+          } else if (!/^[a-zA-Z\s]+$/.test(value.trim())) {
+            errors[name] = 'Child name can only contain letters and spaces';
+          }
+        } else if (name.startsWith('child_') && name.endsWith('_age')) {
+          if (!value || parseInt(value) < 0 || parseInt(value) > 18) {
+            errors[name] = 'Child age must be between 0 and 18 years';
+          }
+        } else if (name.startsWith('child_') && name.endsWith('_gender')) {
+          if (!value) {
+            errors[name] = 'Child gender is required';
+          }
+        } else if (name.startsWith('child_') && name.endsWith('_relation')) {
+          if (!value) {
+            errors[name] = 'Relation to child is required';
+          }
+        }
         break;
     }
 
     return errors;
   };
 
-  const validateForm = () => {
-    const requiredFields = ['name', 'email', 'phone', 'pincode', 'password', 'confirmPassword'];
-    let allErrors = {};
-
-    requiredFields.forEach(field => {
-      const fieldErrors = validateField(field, formData[field]);
-      allErrors = { ...allErrors, ...fieldErrors };
-    });
-
-    // Check terms acceptance
-    if (!termsAccepted) {
-      allErrors.terms = 'You must accept the Terms & Conditions';
-    }
-
-    setValidationErrors(allErrors);
-    const isValid = Object.keys(allErrors).length === 0;
-    setIsFormValid(isValid);
-    return isValid;
-  };
-
   // Real-time validation effect
   useEffect(() => {
     validateForm();
-  }, [formData, termsAccepted]);
+  }, [formData, termsAccepted, validateForm]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -191,9 +410,45 @@ const RegisterPage = () => {
     setError('');
 
     try {
-      // Validate form before submission
-      if (!validateForm()) {
-        setError('Please fix all validation errors before submitting');
+      // Basic validation check
+      if (!selectedRole) {
+        setError('Please select a role before registering');
+        setIsLoading(false);
+        return;
+      }
+
+      if (!formData.name.trim()) {
+        setError('Full name is required');
+        setIsLoading(false);
+        return;
+      }
+
+      if (!formData.email.trim()) {
+        setError('Email address is required');
+        setIsLoading(false);
+        return;
+      }
+
+      if (!formData.phone.trim()) {
+        setError('Phone number is required');
+        setIsLoading(false);
+        return;
+      }
+
+      if (!formData.password) {
+        setError('Password is required');
+        setIsLoading(false);
+        return;
+      }
+
+      if (formData.password !== formData.confirmPassword) {
+        setError('Passwords do not match');
+        setIsLoading(false);
+        return;
+      }
+
+      if (!termsAccepted) {
+        setError('You must accept the Terms of Service and Privacy Policy');
         setIsLoading(false);
         return;
       }
@@ -201,33 +456,30 @@ const RegisterPage = () => {
       // Validate password strength
       if (formData.password.length < 6) {
         setError('Password must be at least 6 characters long!');
-        return;
-      }
-
-      // Validate pincode
-      if (formData.pincode && !/^[0-9]{6}$/.test(formData.pincode)) {
-        setError('Pincode must be exactly 6 digits!');
+        setIsLoading(false);
         return;
       }
 
       // Validate phone number
       if (formData.phone && !/^[0-9]{10}$/.test(formData.phone)) {
         setError('Phone number must be exactly 10 digits!');
+        setIsLoading(false);
         return;
       }
 
       // Prepare user data for registration
       const userData = {
-        name: formData.name,
+        name: selectedRole === 'parent' ? formData.parentName || formData.name : formData.name,
         email: formData.email,
         password: formData.password,
-        role: formData.role,
+        role: selectedRole,
         phone: formData.phone,
+        anganwadiName: formData.anganwadiName || '',
         address: {
-          street: formData.location || '',
-          city: '',
-          state: '',
-          pincode: formData.pincode || '',
+          street: formData.address?.street || formData.location || '',
+          city: formData.address?.city || '',
+          state: formData.address?.state || '',
+          pincode: formData.address?.pincode || formData.pincode || '',
           district: '',
           block: '',
         },
@@ -256,13 +508,36 @@ const RegisterPage = () => {
       case 'parent':
         return {
           parentDetails: {
-            children: formData.childAge ? [{
-              name: formData.parentName || 'Child',
-              age: parseInt(formData.childAge) || 0,
-              gender: 'Not specified',
-            }] : [],
-            occupation: '',
-            familySize: 1,
+            personalInfo: {
+              parentName: formData.parentName || '',
+              dateOfBirth: formData.dateOfBirth || '',
+              age: formData.age || '',
+              gender: formData.gender || '',
+              educationLevel: formData.educationLevel || '',
+              primaryLanguage: formData.primaryLanguage || '',
+              identityProof: formData.identityProof || '',
+            },
+            contactInfo: {
+              email: formData.email || '',
+              phone: formData.phone || '',
+              alternatePhone: formData.alternatePhone || '',
+              address: {
+                street: formData.address?.street || '',
+                locality: formData.address?.locality || '',
+                city: formData.address?.city || '',
+                state: formData.address?.state || '',
+                pincode: formData.address?.pincode || '',
+              },
+            },
+            familyDetails: {
+              maritalStatus: formData.maritalStatus || '',
+              spouseName: formData.spouseName || '',
+              occupation: formData.occupation || '',
+              monthlyIncome: formData.monthlyIncome || '',
+              numberOfChildren: parseInt(formData.numberOfChildren) || 0,
+              children: formData.children || [],
+              linkedAnganwadiCenter: formData.linkedAnganwadiCenter || '',
+            },
           }
         };
       case 'adolescent-girl':
@@ -286,7 +561,7 @@ const RegisterPage = () => {
     // Format specific fields
     let formattedValue = value;
 
-    if (name === 'pincode') {
+    if (name === 'pincode' || name === 'address.pincode') {
       // Only allow numbers and limit to 6 digits
       formattedValue = value.replace(/\D/g, '').slice(0, 6);
     } else if (name === 'phone') {
@@ -294,12 +569,43 @@ const RegisterPage = () => {
       formattedValue = value.replace(/\D/g, '').slice(0, 10);
     }
 
-    // Update form data
-    const newFormData = {
-      ...formData,
-      [name]: formattedValue
-    };
-    setFormData(newFormData);
+    // Handle nested address fields
+    if (name.startsWith('address.')) {
+      const addressField = name.split('.')[1];
+      setFormData(prev => ({
+        ...prev,
+        address: {
+          ...prev.address,
+          [addressField]: formattedValue
+        }
+      }));
+    } else {
+      // Update form data for regular fields
+      const newFormData = {
+        ...formData,
+        [name]: formattedValue
+      };
+      
+      // Handle numberOfChildren change - update children array
+      if (name === 'numberOfChildren') {
+        const numChildren = parseInt(formattedValue) || 0;
+        const currentChildren = newFormData.children || [];
+        
+        if (numChildren > currentChildren.length) {
+          // Add more children entries
+          const newChildren = [...currentChildren];
+          for (let i = currentChildren.length; i < numChildren; i++) {
+            newChildren.push({ name: '', age: '' });
+          }
+          newFormData.children = newChildren;
+        } else if (numChildren < currentChildren.length) {
+          // Remove extra children entries
+          newFormData.children = currentChildren.slice(0, numChildren);
+        }
+      }
+      
+      setFormData(newFormData);
+    }
 
     // Real-time validation for the changed field
     const fieldErrors = validateField(name, formattedValue);
@@ -317,76 +623,357 @@ const RegisterPage = () => {
     switch (selectedRole) {
       case 'parent':
         return (
-          <div className="space-y-6">
-            <h3 className="text-lg font-semibold text-black border-b border-gray-200 pb-2">Family Information</h3>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-black mb-2">
-                  Child's Age
-                </label>
-                <div className="relative">
-                  <Baby className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
-                  <select
-                    name="childAge"
-                    value={formData.childAge}
-                    onChange={handleChange}
-                    className={inputClass}
-                    required
-                  >
-                    <option value="">Select child's age</option>
-                    <option value="0-6months">0-6 months</option>
-                    <option value="6-12months">6-12 months</option>
-                    <option value="1-2years">1-2 years</option>
-                    <option value="2-3years">2-3 years</option>
-                    <option value="3-4years">3-4 years</option>
-                    <option value="4-5years">4-5 years</option>
-                    <option value="5-6years">5-6 years</option>
-                  </select>
+          <div className="space-y-8">
+            {/* 🔹 Personal Details */}
+            <div className="bg-primary-50 p-6 rounded-lg">
+              <h3 className="text-lg font-semibold text-primary-800 mb-4 flex items-center">
+                <User className="w-5 h-5 mr-2" />
+                Personal Details
+              </h3>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-black mb-2">
+                    Gender *
+                  </label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
+                    <select
+                      name="gender"
+                      value={formData.gender}
+                      onChange={handleChange}
+                      className={inputClass}
+                      required
+                    >
+                      <option value="">Select Gender</option>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                  {validationErrors.gender && <p className="text-red-500 text-sm mt-1">{validationErrors.gender}</p>}
                 </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-black mb-2">
-                  Relation to Child
-                </label>
-                <div className="relative">
-                  <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
-                  <select
-                    name="relationToChild"
-                    value={formData.relationToChild}
-                    onChange={handleChange}
-                    className={inputClass}
-                    required
-                  >
-                    <option value="">Select relation</option>
-                    <option value="mother">Mother</option>
-                    <option value="father">Father</option>
-                    <option value="grandmother">Grandmother</option>
-                    <option value="grandfather">Grandfather</option>
-                    <option value="guardian">Legal Guardian</option>
-                    <option value="other">Other</option>
-                  </select>
+                <div>
+                  <label className="block text-sm font-medium text-black mb-2">
+                    Date of Birth *
+                  </label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
+                    <input
+                      type="date"
+                      name="dateOfBirth"
+                      value={formData.dateOfBirth}
+                      onChange={handleChange}
+                      className={inputClass}
+                      required
+                    />
+                  </div>
+                  {validationErrors.dateOfBirth && <p className="text-red-500 text-sm mt-1">{validationErrors.dateOfBirth}</p>}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-black mb-2">
+                    Relation to Child *
+                  </label>
+                  <div className="relative">
+                    <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
+                    <select
+                      name="relationToChild"
+                      value={formData.relationToChild}
+                      onChange={handleChange}
+                      className={inputClass}
+                      required
+                    >
+                      <option value="">Select Relation</option>
+                      {relationOptions.map(relation => (
+                        <option key={relation} value={relation.toLowerCase()}>{relation}</option>
+                      ))}
+                    </select>
+                  </div>
+                  {validationErrors.relationToChild && <p className="text-red-500 text-sm mt-1">{validationErrors.relationToChild}</p>}
                 </div>
               </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-black mb-2">
-                Number of Children
-              </label>
-              <div className="relative">
-                <Baby className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
-                <select
-                  name="experience"
-                  value={formData.experience}
-                  onChange={handleChange}
-                  className={inputClass}
-                  required
-                >
-                  <option value="">Select number</option>
-                  <option value="1">1 child</option>
-                  <option value="2">2 children</option>
-                  <option value="3">3 children</option>
-                  <option value="4+">4+ children</option>
-                </select>
+
+            {/* 🔹 Contact Information */}
+            <div className="bg-blue-50 p-6 rounded-lg">
+              <h3 className="text-lg font-semibold text-blue-800 mb-4 flex items-center">
+                <MapPin className="w-5 h-5 mr-2" />
+                Contact Information
+              </h3>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-black mb-2">
+                    House/Building Number *
+                  </label>
+                  <div className="relative">
+                    <Home className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
+                    <input
+                      type="text"
+                      name="address.house"
+                      value={formData.address.house}
+                      onChange={handleChange}
+                      className={inputClass}
+                      placeholder="House/Flat/Building No."
+                      required
+                    />
+                  </div>
+                  {validationErrors['address.house'] && <p className="text-red-500 text-sm mt-1">{validationErrors['address.house']}</p>}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-black mb-2">
+                    Street Address *
+                  </label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
+                    <input
+                      type="text"
+                      name="address.street"
+                      value={formData.address.street}
+                      onChange={handleChange}
+                      className={inputClass}
+                      placeholder="Street, Locality"
+                      required
+                    />
+                  </div>
+                  {validationErrors['address.street'] && <p className="text-red-500 text-sm mt-1">{validationErrors['address.street']}</p>}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-black mb-2">
+                    Ward *
+                  </label>
+                  <div className="relative">
+                    <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
+                    <input
+                      type="text"
+                      name="address.ward"
+                      value={formData.address.ward}
+                      onChange={handleChange}
+                      className={inputClass}
+                      placeholder="Ward Number/Name"
+                      required
+                    />
+                  </div>
+                  {validationErrors['address.ward'] && <p className="text-red-500 text-sm mt-1">{validationErrors['address.ward']}</p>}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-black mb-2">
+                    Pincode *
+                  </label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
+                    <input
+                      type="text"
+                      name="address.pincode"
+                      value={formData.address.pincode}
+                      onChange={handleChange}
+                      className={inputClass}
+                      placeholder="6-digit pincode"
+                      maxLength="6"
+                      required
+                    />
+                  </div>
+                  {validationErrors['address.pincode'] && <p className="text-red-500 text-sm mt-1">{validationErrors['address.pincode']}</p>}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-black mb-2">
+                    City *
+                  </label>
+                  <div className="relative">
+                    <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
+                    <input
+                      type="text"
+                      name="address.city"
+                      value={formData.address.city}
+                      onChange={handleChange}
+                      className={inputClass}
+                      placeholder="City"
+                      required
+                    />
+                  </div>
+                  {validationErrors['address.city'] && <p className="text-red-500 text-sm mt-1">{validationErrors['address.city']}</p>}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-black mb-2">
+                    State *
+                  </label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
+                    <input
+                      type="text"
+                      name="address.state"
+                      value={formData.address.state}
+                      onChange={handleChange}
+                      className={inputClass}
+                      placeholder="State"
+                      required
+                    />
+                  </div>
+                  {validationErrors['address.state'] && <p className="text-red-500 text-sm mt-1">{validationErrors['address.state']}</p>}
+                </div>
+              </div>
+            </div>
+
+            {/* 🔹 Family / Child Details */}
+            <div className="bg-green-50 p-6 rounded-lg">
+              <h3 className="text-lg font-semibold text-green-800 mb-4 flex items-center">
+                <Baby className="w-5 h-5 mr-2" />
+                Family / Child Details
+              </h3>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-black mb-2">
+                    Number of Children *
+                  </label>
+                  <div className="relative">
+                    <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
+                    <select
+                      name="numberOfChildren"
+                      value={formData.numberOfChildren}
+                      onChange={handleChange}
+                      className={inputClass}
+                      required
+                    >
+                      <option value="">Select number</option>
+                      <option value="1">1 Child</option>
+                      <option value="2">2 Children</option>
+                      <option value="3">3 Children</option>
+                      <option value="4">4 Children</option>
+                      <option value="5">5+ Children</option>
+                    </select>
+                  </div>
+                  {validationErrors.numberOfChildren && <p className="text-red-500 text-sm mt-1">{validationErrors.numberOfChildren}</p>}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-black mb-2">
+                    Linked Anganwadi Center *
+                  </label>
+                  <div className="relative">
+                    <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
+                    <select
+                      name="linkedAnganwadiCenter"
+                      value={formData.linkedAnganwadiCenter}
+                      onChange={handleChange}
+                      className={inputClass}
+                      required
+                    >
+                      <option value="">Select Anganwadi Center</option>
+                      {anganwadiCenters.map(center => (
+                        <option key={center.code} value={center.name}>
+                          {center.name} - {center.location}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {validationErrors.linkedAnganwadiCenter && <p className="text-red-500 text-sm mt-1">{validationErrors.linkedAnganwadiCenter}</p>}
+                </div>
+              </div>
+
+              {/* Dynamic Children Fields */}
+              {parseInt(formData.numberOfChildren) > 0 && (
+                <div className="mt-6">
+                  <h4 className="text-md font-medium text-black mb-4">Child Details *</h4>
+                  {formData.children.map((child, index) => (
+                    <div key={index} className="grid md:grid-cols-2 gap-4 mb-4 p-4 bg-white rounded-lg border">
+                      <div>
+                        <label className="block text-sm font-medium text-black mb-2">
+                          Child {index + 1} Name *
+                        </label>
+                        <input
+                          type="text"
+                          value={child.name}
+                          onChange={(e) => updateChild(index, 'name', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                          placeholder="Enter child's name"
+                          required
+                        />
+                        {validationErrors[`child_${index}_name`] && <p className="text-red-500 text-sm mt-1">{validationErrors[`child_${index}_name`]}</p>}
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-black mb-2">
+                          Child {index + 1} Age (≥ 3 years) *
+                        </label>
+                        <input
+                          type="number"
+                          min="3"
+                          max="6"
+                          value={child.age}
+                          onChange={(e) => updateChild(index, 'age', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                          placeholder="Age in years"
+                          required
+                        />
+                        {validationErrors[`child_${index}_age`] && <p className="text-red-500 text-sm mt-1">{validationErrors[`child_${index}_age`]}</p>}
+                      </div>
+                    </div>
+                  ))}
+                  {validationErrors.children && <p className="text-red-500 text-sm mt-1">{validationErrors.children}</p>}
+                </div>
+              )}
+            </div>
+
+            {/* 🔹 Additional Information (Optional) */}
+            <div className="bg-purple-50 p-6 rounded-lg">
+              <h3 className="text-lg font-semibold text-purple-800 mb-4 flex items-center">
+                <Briefcase className="w-5 h-5 mr-2" />
+                Additional Information (Optional)
+              </h3>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-black mb-2">
+                    Occupation
+                  </label>
+                  <div className="relative">
+                    <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
+                    <select
+                      name="occupation"
+                      value={formData.occupation}
+                      onChange={handleChange}
+                      className={inputClass}
+                    >
+                      <option value="">Select occupation</option>
+                      {occupations.map(occupation => (
+                        <option key={occupation} value={occupation}>{occupation}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-black mb-2">
+                    Education Level
+                  </label>
+                  <div className="relative">
+                    <GraduationCap className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
+                    <select
+                      name="educationLevel"
+                      value={formData.educationLevel}
+                      onChange={handleChange}
+                      className={inputClass}
+                    >
+                      <option value="">Select education level</option>
+                      {educationLevels.map(level => (
+                        <option key={level} value={level}>{level}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-black mb-2">
+                    Income Bracket
+                  </label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
+                    <select
+                      name="incomeBracket"
+                      value={formData.incomeBracket}
+                      onChange={handleChange}
+                      className={inputClass}
+                    >
+                      <option value="">Select income bracket</option>
+                      {incomeBrackets.map(bracket => (
+                        <option key={bracket} value={bracket}>{bracket}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -746,15 +1333,20 @@ const RegisterPage = () => {
                     </label>
                     <div className="relative">
                       <Baby className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
-                      <input
-                        type="text"
+                      <select
                         name="anganwadiName"
                         value={formData.anganwadiName}
                         onChange={handleChange}
                         className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-black"
-                        placeholder="Enter anganwadi name"
                         required
-                      />
+                      >
+                        <option value="">Select Anganwadi</option>
+                        {anganwadiCenters.map(center => (
+                          <option key={center.code} value={center.name}>
+                            {center.name}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                 )}
@@ -876,11 +1468,11 @@ const RegisterPage = () => {
 
                 <motion.button
                   type="submit"
-                  disabled={isLoading || !isFormValid}
-                  whileHover={{ scale: (isLoading || !isFormValid) ? 1 : 1.02 }}
-                  whileTap={{ scale: (isLoading || !isFormValid) ? 1 : 0.98 }}
+                  disabled={isLoading}
+                  whileHover={{ scale: isLoading ? 1 : 1.02 }}
+                  whileTap={{ scale: isLoading ? 1 : 0.98 }}
                   className={`w-full font-semibold py-3 px-6 rounded-lg shadow-lg transition-all duration-300 disabled:cursor-not-allowed ${
-                    isFormValid && !isLoading
+                    !isLoading
                       ? 'bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white hover:shadow-xl'
                       : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   }`}
@@ -890,46 +1482,14 @@ const RegisterPage = () => {
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
                       Creating Account...
                     </div>
-                  ) : !isFormValid ? (
-                    <div className="flex items-center justify-center">
-                      <AlertCircle className="w-5 h-5 mr-2" />
-                      Please fix errors to continue
-                    </div>
                   ) : (
                     <div className="flex items-center justify-center">
                       <CheckCircle className="w-5 h-5 mr-2" />
-                      Create Account as {roles.find(r => r.id === selectedRole)?.title}
+                      Create Account as {roles.find(r => r.id === selectedRole)?.title || 'User'}
                     </div>
                   )}
                 </motion.button>
               </form>
-
-              {/* Divider */}
-              <div className="mt-6">
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-gray-300" />
-                  </div>
-                  <div className="relative flex justify-center text-sm">
-                    <span className="px-2 bg-white text-gray-500">Or continue with</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Google Sign-in */}
-              <div className="mt-6">
-                <GoogleSignIn
-                  onSuccess={handleGoogleSuccess}
-                  onError={handleGoogleError}
-                  selectedRole={selectedRole}
-                  disabled={isLoading}
-                />
-                {!selectedRole && (
-                  <p className="mt-2 text-xs text-gray-500 text-center">
-                    Please select a role above to enable Google Sign-in
-                  </p>
-                )}
-              </div>
 
               <p className="mt-6 text-center text-sm text-black">
                 Already have an account?{' '}

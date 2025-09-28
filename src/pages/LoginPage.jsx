@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Baby, Mail, Lock, Eye, EyeOff, User } from 'lucide-react';
@@ -6,6 +6,7 @@ import authService from '../services/authService';
 import FirstTimePasswordChange from '../components/auth/FirstTimePasswordChange';
 import ForgotPassword from '../components/auth/ForgotPassword';
 import GoogleSignIn from '../components/auth/GoogleSignIn';
+import sessionManager from '../utils/sessionManager';
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -20,6 +21,37 @@ const LoginPage = () => {
   const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+
+  // Clear any existing session on login page load
+  useEffect(() => {
+    console.log('🔐 Login page loaded, checking for existing session...');
+    
+    // If user came from logout or session expired, ensure clean slate
+    const urlParams = new URLSearchParams(window.location.search);
+    const fromLogout = urlParams.get('logout') === 'true';
+    
+    if (fromLogout || !sessionManager.isAuthenticated()) {
+      console.log('🧹 Clearing any residual session data');
+      sessionManager.destroySession();
+    }
+    
+    // If user is already authenticated and on login page, redirect to their dashboard
+    if (sessionManager.isAuthenticated()) {
+      const userRole = sessionManager.getUserRole();
+      const dashboardRoutes = {
+        'super-admin': '/admin-dashboard',
+        'anganwadi-worker': '/aww-dashboard', 
+        'asha-volunteer': '/asha-dashboard',
+        'parent': '/parent-dashboard',
+        'adolescent-girl': '/adolescent-dashboard',
+        'sanitation-worker': '/sanitation-dashboard'
+      };
+      
+      const dashboardPath = dashboardRoutes[userRole] || '/';
+      console.log('🔄 User already authenticated, redirecting to:', dashboardPath);
+      navigate(dashboardPath, { replace: true });
+    }
+  }, [navigate]);
 
   // Admin default credentials
   const ADMIN_CREDENTIALS = {

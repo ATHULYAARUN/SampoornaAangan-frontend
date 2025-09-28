@@ -75,7 +75,7 @@ const ChildDetailsCard = ({ child, onViewDetails }) => {
             </div>
             <div>
               <h3 className="text-xl font-bold text-gray-900">{child.name}</h3>
-              <p className="text-gray-600">{child.age} • {child.gender}</p>
+              <p className="text-gray-600">{child.ageDisplay || child.age} • {child.gender}</p>
               <p className="text-sm text-gray-500">{child.anganwadiCenter}</p>
             </div>
           </div>

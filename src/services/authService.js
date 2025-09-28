@@ -9,6 +9,7 @@ import {
   sendPasswordResetEmail,
   sendEmailVerification
 } from '../config/firebase';
+import sessionManager from '../utils/sessionManager';
 
 // API base URL - use relative path for Vite proxy
 const API_BASE_URL = '/api';
@@ -65,7 +66,10 @@ class AuthService {
         })
       });
       
-      const result = await response.json();
+      const result = await response.json().catch(() => ({ 
+        message: 'Server error - unable to parse response',
+        success: false 
+      }));
       
       if (!response.ok) {
         // If backend registration fails but Firebase succeeded, clean up Firebase user
@@ -135,7 +139,10 @@ class AuthService {
           })
         });
         
-        result = await response.json();
+        result = await response.json().catch(() => ({ 
+          message: 'Server error - unable to parse response',
+          success: false 
+        }));
         
         if (!response.ok) {
           throw new Error(result.message || 'Firebase login failed');
@@ -202,6 +209,16 @@ class AuthService {
       if (result.data.needsPasswordChange) {
         localStorage.setItem('needsPasswordChange', 'true');
       }
+
+      // Create session using session manager
+      sessionManager.createSession({
+        id: result.data.user.id,
+        name: result.data.user.name,
+        email: result.data.user.email,
+        role: result.data.role,
+        authMethod: result.data.authMethod || authMethod,
+        needsPasswordChange: result.data.needsPasswordChange
+      });
       
       return {
         success: true,
@@ -250,6 +267,16 @@ class AuthService {
         localStorage.setItem('isAuthenticated', 'true');
         localStorage.setItem('adminToken', result.data.token);
         
+        // Create admin session
+        sessionManager.createSession({
+          id: result.data.admin.id,
+          name: result.data.admin.name,
+          email: result.data.admin.email,
+          role: 'super-admin',
+          authMethod: 'admin',
+          isAdmin: true
+        });
+        
         console.log('✅ Admin login successful');
         
         return {
@@ -269,23 +296,24 @@ class AuthService {
   // Logout user
   async logout() {
     try {
+      console.log('🔐 Logging out user...');
+      
       // Sign out from Firebase (if user is signed in)
       if (auth.currentUser) {
         await signOut(auth);
+        console.log('✅ Firebase sign out successful');
       }
       
-      // Clear localStorage
-      localStorage.removeItem('userRole');
-      localStorage.removeItem('userName');
-      localStorage.removeItem('userEmail');
-      localStorage.removeItem('isAuthenticated');
-      localStorage.removeItem('firebaseToken');
-      localStorage.removeItem('adminToken');
+      // Destroy session using session manager
+      sessionManager.destroySession();
       
+      console.log('✅ Logout completed successfully');
       return { success: true };
       
     } catch (error) {
       console.error('Logout error:', error);
+      // Even if there's an error, ensure session is destroyed
+      sessionManager.destroySession();
       throw new Error('Logout failed');
     }
   }
@@ -414,6 +442,17 @@ class AuthService {
       localStorage.setItem('isAuthenticated', 'true');
       localStorage.setItem('authMethod', 'google');
       localStorage.setItem('firebaseToken', idToken);
+
+      // Create session using session manager
+      sessionManager.createSession({
+        id: data.data.user.id,
+        name: data.data.user.name,
+        email: data.data.user.email,
+        role: data.data.role,
+        authMethod: 'google',
+        photoURL: user.photoURL,
+        isNewUser: data.data.isNewUser
+      });
       
       console.log('✅ Google Sign-in completed successfully');
       

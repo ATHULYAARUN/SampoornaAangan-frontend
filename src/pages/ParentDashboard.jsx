@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import parentService from '../services/parentService';
+import authService from '../services/authService';
+import sessionManager from '../utils/sessionManager';
 import ChildDetailsCard from '../components/Parent/ChildDetailsCard';
 import { 
   Baby, 
@@ -40,6 +42,14 @@ const ParentDashboard = () => {
       setError(null);
 
       console.log('🔄 Fetching parent dashboard data...');
+      console.log('👤 User info:', {
+        name: localStorage.getItem('userName'),
+        email: localStorage.getItem('userEmail'),
+        role: localStorage.getItem('userRole'),
+        isAuthenticated: localStorage.getItem('isAuthenticated'),
+        hasAuthToken: !!localStorage.getItem('authToken'),
+        hasFirebaseToken: !!localStorage.getItem('firebaseToken')
+      });
 
       // Fetch parent statistics and children data
       const stats = await parentService.getParentStats();
@@ -49,21 +59,49 @@ const ParentDashboard = () => {
 
       console.log('✅ Parent data loaded successfully');
       console.log('📊 Stats:', stats);
+      console.log('👶 Children found:', stats.children?.length || 0);
 
     } catch (error) {
       console.error('❌ Failed to fetch parent data:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        stack: error.stack,
+        userInfo: {
+          name: localStorage.getItem('userName'),
+          email: localStorage.getItem('userEmail'),
+          role: localStorage.getItem('userRole')
+        }
+      });
       setError(error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('userRole');
-    localStorage.removeItem('userName');
-    localStorage.removeItem('userEmail');
-    localStorage.removeItem('isAuthenticated');
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      console.log('🔐 Logout button clicked, starting logout process...');
+      
+      // Use sessionManager for complete cleanup
+      sessionManager.destroySession();
+      console.log('🧹 Session destroyed via sessionManager');
+      
+      // Call the logout service
+      await authService.logout();
+      
+      console.log('✅ Logout successful, navigating to login page');
+      navigate('/login', { replace: true });
+      
+    } catch (error) {
+      console.error('❌ Logout error:', error);
+      
+      // Force logout even if there's an error
+      console.log('🔧 Force clearing session data...');
+      sessionManager.destroySession();
+      
+      // Navigate to login page
+      navigate('/login', { replace: true });
+    }
   };
 
   const handleViewChildDetails = (childId) => {
@@ -254,13 +292,17 @@ const ParentDashboard = () => {
               Retry
             </button>
           </div>
-        ) : children.length === 0 ? (
+        ) : !children || children.length === 0 ? (
           <div className="text-center py-8">
             <Baby className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h4 className="text-lg font-medium text-gray-900 mb-2">No Children Found</h4>
-            <p className="text-gray-600">
+            <p className="text-gray-600 mb-4">
               No children are registered under your account. Please contact your Anganwadi Worker if this seems incorrect.
             </p>
+            <div className="text-sm text-gray-500">
+              <p>Parent: {localStorage.getItem('userName')}</p>
+              <p>Email: {localStorage.getItem('userEmail')}</p>
+            </div>
           </div>
         ) : (
           <div className="space-y-4">
@@ -345,13 +387,19 @@ const ParentDashboard = () => {
                     Retry Loading
                   </button>
                 </div>
-              ) : children.length === 0 ? (
+              ) : !children || children.length === 0 ? (
                 <div className="text-center py-12">
                   <Baby className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-xl font-medium text-gray-900 mb-2">No Children Registered</h3>
                   <p className="text-gray-600 mb-4">
                     No children are currently registered under your account.
                   </p>
+                  <div className="bg-blue-50 p-4 rounded-lg mb-4">
+                    <p className="text-sm text-blue-800 font-medium mb-2">Logged in as:</p>
+                    <p className="text-sm text-blue-700">Name: {localStorage.getItem('userName')}</p>
+                    <p className="text-sm text-blue-700">Email: {localStorage.getItem('userEmail')}</p>
+                    <p className="text-sm text-blue-700">Role: {localStorage.getItem('userRole')}</p>
+                  </div>
                   <p className="text-sm text-gray-500">
                     Please contact your local Anganwadi Worker if you believe this is an error.
                   </p>
