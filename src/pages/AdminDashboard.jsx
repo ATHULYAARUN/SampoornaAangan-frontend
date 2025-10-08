@@ -6,6 +6,7 @@ import ReportsAnalytics from "../components/admin/ReportsAnalytics";
 import ReportsAnalyticsDebug from "../components/ReportsAnalyticsDebug";
 import SimpleReportsTest from "../components/admin/SimpleReportsTest";
 import SystemSettings from "../components/admin/SystemSettings";
+import HealthMonitoring from "../components/admin/HealthMonitoring";
 import ErrorBoundary from "../components/ErrorBoundary";
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -781,68 +782,9 @@ const AdminDashboard = () => {
   };
 
   const renderHealthMonitoring = () => (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-black">Health Monitoring & Alerts</h2>
-      
-      {/* Health Alerts Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <motion.div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-red-600">High-Risk Pregnancies</h3>
-            <Heart className="w-6 h-6 text-red-500" />
-          </div>
-          <p className="text-3xl font-bold text-black">12</p>
-          <p className="text-sm text-gray-600">Requiring immediate attention</p>
-          <button className="mt-4 w-full bg-red-50 text-red-600 py-2 px-4 rounded-lg hover:bg-red-100">
-            View Details
-          </button>
-        </motion.div>
-
-        <motion.div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-orange-600">Anemia Cases</h3>
-            <Activity className="w-6 h-6 text-orange-500" />
-          </div>
-          <p className="text-3xl font-bold text-black">34</p>
-          <p className="text-sm text-gray-600">Adolescent girls affected</p>
-          <button className="mt-4 w-full bg-orange-50 text-orange-600 py-2 px-4 rounded-lg hover:bg-orange-100">
-            View Details
-          </button>
-        </motion.div>
-
-        <motion.div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-green-600">Growth Monitoring</h3>
-            <TrendingUp className="w-6 h-6 text-green-500" />
-          </div>
-          <p className="text-3xl font-bold text-black">89%</p>
-          <p className="text-sm text-gray-600">Children on track</p>
-          <button className="mt-4 w-full bg-green-50 text-green-600 py-2 px-4 rounded-lg hover:bg-green-100">
-            View Charts
-          </button>
-        </motion.div>
-      </div>
-
-      {/* Recent Health Activities */}
-      <motion.div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-        <h3 className="text-lg font-semibold text-black mb-4">Recent Health Activities</h3>
-        <div className="space-y-4">
-          {[
-            { center: 'Akkarakunnu Center', activity: 'Monthly health checkup completed', children: 25, time: '2 hours ago' },
-            { center: 'Ward 3 Center', activity: 'Vaccination drive conducted', children: 18, time: '1 day ago' },
-            { center: 'Ward 5 Center', activity: 'Nutrition assessment done', children: 32, time: '2 days ago' }
-          ].map((item, index) => (
-            <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-              <div>
-                <p className="font-medium text-black">{item.center}</p>
-                <p className="text-sm text-gray-600">{item.activity} - {item.children} children</p>
-              </div>
-              <span className="text-xs text-gray-500">{item.time}</span>
-            </div>
-          ))}
-        </div>
-      </motion.div>
-    </div>
+    <ErrorBoundary>
+      <HealthMonitoring />
+    </ErrorBoundary>
   );
 
   const renderWasteManagement = () => (
