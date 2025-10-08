@@ -4,6 +4,7 @@ import UserManagement from "../components/UserManagement";
 import WorkerManagement from "../components/admin/WorkerManagement";
 import ReportsAnalytics from "../components/admin/ReportsAnalytics";
 import ReportsAnalyticsDebug from "../components/ReportsAnalyticsDebug";
+import SimpleReportsTest from "../components/admin/SimpleReportsTest";
 import SystemSettings from "../components/admin/SystemSettings";
 import ErrorBoundary from "../components/ErrorBoundary";
 import { useNavigate } from 'react-router-dom';
@@ -35,7 +36,6 @@ import {
   Wifi,
   WifiOff
 } from 'lucide-react';
-import SimpleReportsTest from '../components/admin/SimpleReportsTest';
 import ExportButton from '../components/admin/ExportButton';
 import dashboardService from '../services/dashboardService';
 import authService from '../services/authService';
@@ -735,31 +735,47 @@ const AdminDashboard = () => {
   );
 
   const renderReports = () => {
-    console.log('🔄 Rendering Reports Analytics page - FULL VERSION');
+    console.log('🔄 Rendering Reports Analytics page - TEST VERSION');
     console.log('⚠️ Current activeTab in renderReports:', activeTab);
     
-    // Force the correct content regardless of any other issues
+    // Ensure we stay on the reports tab
     return (
-      <div className="space-y-6 p-6 bg-gray-50 min-h-screen">
+      <div className="space-y-6">
         {/* Force Reports Header */}
         <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Analytics & Reports</h1>
-              <p className="text-gray-600 mt-1">Comprehensive data analysis and reporting dashboard</p>
+              <h1 className="text-3xl font-bold text-gray-900">📊 Analytics & Reports - TEST MODE</h1>
+              <p className="text-gray-600 mt-1">Testing if this component loads correctly</p>
             </div>
             <div className="flex items-center space-x-2">
-              <div className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
-                ✅ Fully Functional
+              <div className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium">
+                🧪 Test Mode
+              </div>
+              <div className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                📍 Current Tab: {activeTab}
               </div>
             </div>
           </div>
         </div>
         
-        {/* Full ReportsAnalytics Component */}
-        <ErrorBoundary>
-          <ReportsAnalytics />
-        </ErrorBoundary>
+        {/* Full ReportsAnalytics Component with Enhanced Debugging */}
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+          <ErrorBoundary fallback={
+            <div className="p-6 text-center">
+              <h3 className="text-lg font-semibold text-red-600 mb-2">⚠️ ReportsAnalytics Component Error</h3>
+              <p className="text-gray-600 mb-4">There was an issue loading the analytics component.</p>
+              <button 
+                onClick={() => window.location.reload()} 
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                🔄 Reload Page
+              </button>
+            </div>
+          }>
+            <ReportsAnalytics />
+          </ErrorBoundary>
+        </div>
       </div>
     );
   };
@@ -1073,14 +1089,16 @@ const AdminDashboard = () => {
                   console.log('🔄 Tab clicked:', tab.id, tab.label);
                   console.log('🔄 Previous activeTab:', activeTab);
                   
+                  // Prevent any redirection by handling the click properly
                   if (tab.id === 'reports') {
-                    console.log('🚀 REPORTS TAB CLICKED - FORCING REPORTS MODE');
+                    console.log('🚀 REPORTS TAB CLICKED - SETTING ACTIVE TAB');
                     setForceReports(true);
+                    setActiveTab('reports');
                   } else {
                     setForceReports(false);
+                    setActiveTab(tab.id);
                   }
                   
-                  setActiveTab(tab.id);
                   console.log('🔄 Setting activeTab to:', tab.id);
                   
                   // Add a small delay to check if it changes back
@@ -1088,14 +1106,20 @@ const AdminDashboard = () => {
                     console.log('🔄 ActiveTab after 100ms:', activeTab);
                   }, 100);
                 }}
-                className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm ${
+                className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-all duration-200 ${
                   activeTab === tab.id
-                    ? 'border-primary-500 text-primary-600 bg-primary-50'
+                    ? 'border-blue-500 text-blue-600 bg-blue-50'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
+                title={`Navigate to ${tab.label}`}
               >
                 <tab.icon className="w-4 h-4" />
                 <span>{tab.label}</span>
+                {tab.id === 'reports' && (
+                  <span className="ml-1 px-2 py-0.5 bg-green-100 text-green-600 text-xs rounded-full">
+                    New
+                  </span>
+                )}
               </button>
             ))}
           </nav>

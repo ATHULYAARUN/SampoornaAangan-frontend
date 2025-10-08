@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { X, User, Mail, Phone, MapPin, Briefcase, Building, Save, AlertCircle, Key, Eye, EyeOff, Calendar, Upload, UserCheck, Contact } from 'lucide-react';
 
-const CreateWorkerModal = ({ worker, onClose, onSuccess }) => {
+const CreateWorkerModal = ({ worker, selectedRole, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
     name: worker?.name || '',
     email: worker?.email || '',
     phone: worker?.phone || '',
-    role: worker?.role || 'anganwadi-worker',
+    role: selectedRole?.id || worker?.role || 'anganwadi-worker',
     
     // New fields for enhanced Anganwadi Worker form
     gender: worker?.gender || '',
@@ -696,10 +696,13 @@ const CreateWorkerModal = ({ worker, onClose, onSuccess }) => {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xl font-bold">
-                {worker ? 'Edit Worker Account' : 'Create New Anganwadi Worker Account'}
+                {worker ? 'Edit Worker Account' : `Create New ${selectedRole?.name || 'Worker'} Account`}
               </h2>
               <p className="text-primary-100 text-sm mt-1">
-                {worker ? 'Update worker information' : 'Register a new Anganwadi worker with comprehensive details'}
+                {worker 
+                  ? 'Update worker information' 
+                  : `Register a new ${selectedRole?.name || 'worker'} with comprehensive details`
+                }
               </p>
             </div>
             <button
@@ -769,20 +772,42 @@ const CreateWorkerModal = ({ worker, onClose, onSuccess }) => {
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Role *
+                    Worker Role *
                   </label>
-                  <select
+                  {selectedRole ? (
+                    <div className={`w-full px-4 py-3 border-2 ${selectedRole.borderColor} ${selectedRole.bgColor} rounded-lg flex items-center gap-3`}>
+                      <div className={`w-8 h-8 rounded-full bg-gradient-to-r ${selectedRole.color} flex items-center justify-center text-white font-bold`}>
+                        {selectedRole.icon}
+                      </div>
+                      <div className="flex-1">
+                        <div className={`font-semibold ${selectedRole.textColor}`}>
+                          {selectedRole.name}
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          {selectedRole.description}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <select
+                      name="role"
+                      value={formData.role}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      required
+                    >
+                      <option value="anganwadi-worker">👶 Anganwadi Worker</option>
+                      <option value="asha-volunteer">🏥 ASHA Volunteer</option>
+                      <option value="sanitation-worker">🧹 Sanitation Worker</option>
+                    </select>
+                  )}
+                  <input
+                    type="hidden"
                     name="role"
                     value={formData.role}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                    required
-                    disabled
-                  >
-                    <option value="anganwadi-worker">👶 Anganwadi Worker</option>
-                  </select>
+                  />
                   <p className="text-xs text-gray-500 mt-1">
-                    Pre-set to Anganwadi Worker
+                    {selectedRole ? 'Role selected from previous step' : 'Select the worker role'}
                   </p>
                 </div>
 

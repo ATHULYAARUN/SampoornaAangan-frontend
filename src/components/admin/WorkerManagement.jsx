@@ -24,18 +24,48 @@ import {
 const WorkerManagement = () => {
   const [workers, setWorkers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [resendingCredentials, setResendingCredentials] = useState(null); // Track which worker's credentials are being resent
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showRoleSelection, setShowRoleSelection] = useState(false);
+  const [selectedWorkerRole, setSelectedWorkerRole] = useState(null);
   const [selectedWorker, setSelectedWorker] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
 
   const workerRoles = [
-    { id: 'anganwadi-worker', name: 'Anganwadi Worker', icon: '👶' },
-    { id: 'asha-volunteer', name: 'ASHA Volunteer', icon: '🏥' },
-    { id: 'sanitation-worker', name: 'Sanitation Worker', icon: '🧹' }
+    { 
+      id: 'anganwadi-worker', 
+      name: 'Anganwadi Worker', 
+      icon: '👶',
+      description: 'Manages child care, nutrition programs, and early childhood education',
+      color: 'from-pink-500 to-rose-500',
+      bgColor: 'bg-pink-50',
+      textColor: 'text-pink-700',
+      borderColor: 'border-pink-200'
+    },
+    { 
+      id: 'asha-volunteer', 
+      name: 'ASHA Volunteer', 
+      icon: '🏥',
+      description: 'Provides health services, maternal care, and community health programs',
+      color: 'from-blue-500 to-cyan-500',
+      bgColor: 'bg-blue-50',
+      textColor: 'text-blue-700',
+      borderColor: 'border-blue-200'
+    },
+    { 
+      id: 'sanitation-worker', 
+      name: 'Sanitation Worker', 
+      icon: '🧹',
+      description: 'Maintains hygiene, sanitation facilities, and waste management',
+      color: 'from-green-500 to-emerald-500',
+      bgColor: 'bg-green-50',
+      textColor: 'text-green-700',
+      borderColor: 'border-green-200'
+    }
   ];
 
   useEffect(() => {
@@ -63,7 +93,22 @@ const WorkerManagement = () => {
   };
 
   const handleResendCredentials = async (workerId) => {
+    // Show confirmation dialog
+    const worker = workers.find(w => w._id === workerId);
+    if (!worker) {
+      alert('Worker not found');
+      return;
+    }
+
+    const confirmResend = window.confirm(
+      `Are you sure you want to resend credentials to ${worker.name} (${worker.email})?\n\n` +
+      `This will generate a new temporary password if needed and send it via email.`
+    );
+
+    if (!confirmResend) return;
+
     try {
+      setResendingCredentials(workerId);
       const response = await fetch(`/api/admin/workers/${workerId}/resend-credentials`, {
         method: 'POST',
         headers: {
@@ -71,14 +116,17 @@ const WorkerManagement = () => {
         }
       });
       const data = await response.json();
+      
       if (data.success) {
-        alert('Credentials sent successfully!');
+        alert(`✅ Success!\n\nCredentials have been resent to ${worker.email}\n\nThe worker will receive an email with their login information.`);
       } else {
-        alert('Failed to send credentials: ' + data.message);
+        alert(`❌ Failed to send credentials: ${data.message}`);
       }
     } catch (error) {
       console.error('Error resending credentials:', error);
-      alert('Error resending credentials');
+      alert('❌ Error resending credentials. Please check your connection and try again.');
+    } finally {
+      setResendingCredentials(null);
     }
   };
 
@@ -144,7 +192,7 @@ const WorkerManagement = () => {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => setShowCreateModal(true)}
+            onClick={() => setShowRoleSelection(true)}
             className="bg-primary-600 text-white px-6 py-3 rounded-lg flex items-center gap-2 hover:bg-primary-700 transition-colors"
           >
             <Plus className="w-5 h-5" />
@@ -291,6 +339,7 @@ const WorkerManagement = () => {
                   <WorkerRow 
                     key={worker._id} 
                     worker={worker} 
+                    isResendingCredentials={resendingCredentials === worker._id}
                     onView={() => {
                       setSelectedWorker(worker);
                       setShowDetailsModal(true);
@@ -313,18 +362,34 @@ const WorkerManagement = () => {
         </div>
       </div>
 
+      {/* Role Selection Modal */}
+      {showRoleSelection && (
+        <RoleSelectionModal
+          workerRoles={workerRoles}
+          onClose={() => setShowRoleSelection(false)}
+          onRoleSelect={(role) => {
+            setSelectedWorkerRole(role);
+            setShowRoleSelection(false);
+            setShowCreateModal(true);
+          }}
+        />
+      )}
+
       {/* Create/Edit Worker Modal */}
       {showCreateModal && (
         <CreateWorkerModal
           worker={selectedWorker}
+          selectedRole={selectedWorkerRole}
           onClose={() => {
             setShowCreateModal(false);
             setSelectedWorker(null);
+            setSelectedWorkerRole(null);
           }}
           onSuccess={() => {
             fetchWorkers();
             setShowCreateModal(false);
             setSelectedWorker(null);
+            setSelectedWorkerRole(null);
           }}
         />
       )}
@@ -368,7 +433,7 @@ const WorkerManagement = () => {
 };
 
 // Worker Row Component
-const WorkerRow = ({ worker, onView, onEdit, onResendCredentials, onResetPassword, onToggleStatus }) => {
+const WorkerRow = ({ worker, isResendingCredentials, onView, onEdit, onResendCredentials, onResetPassword, onToggleStatus }) => {
   const getRoleInfo = (role) => {
     const roleMap = {
       'anganwadi-worker': { name: 'Anganwadi Worker', icon: '👶', color: 'bg-blue-100 text-blue-800' },
@@ -456,10 +521,18 @@ const WorkerRow = ({ worker, onView, onEdit, onResendCredentials, onResetPasswor
           </button>
           <button
             onClick={onResendCredentials}
-            className="text-green-400 hover:text-green-600 p-1"
-            title="Resend Credentials"
+            disabled={isResendingCredentials}
+            className={`p-1 ${isResendingCredentials 
+              ? 'text-gray-400 cursor-not-allowed' 
+              : 'text-green-400 hover:text-green-600'
+            }`}
+            title={isResendingCredentials ? "Sending..." : "Resend Credentials"}
           >
-            <Mail className="w-4 h-4" />
+            {isResendingCredentials ? (
+              <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+            ) : (
+              <Mail className="w-4 h-4" />
+            )}
           </button>
           <button
             onClick={onResetPassword}
@@ -699,6 +772,103 @@ const PasswordResetModal = ({ worker, onClose, onSuccess }) => {
               </button>
             </div>
           </form>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+// Role Selection Modal Component
+const RoleSelectionModal = ({ workerRoles, onClose, onRoleSelect }) => {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.9 }}
+        className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl"
+      >
+        {/* Header */}
+        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold">Select Worker Type</h2>
+              <p className="text-indigo-100 mt-1">Choose the type of worker account to create</p>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-white hover:bg-opacity-20 rounded-full transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+        </div>
+
+        {/* Role Selection Cards */}
+        <div className="p-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {workerRoles.map((role) => (
+              <motion.div
+                key={role.id}
+                whileHover={{ scale: 1.02, y: -4 }}
+                whileTap={{ scale: 0.98 }}
+                className={`${role.bgColor} ${role.borderColor} border-2 rounded-xl p-6 cursor-pointer transition-all duration-200 hover:shadow-lg group`}
+                onClick={() => onRoleSelect(role)}
+              >
+                {/* Role Icon */}
+                <div className={`w-16 h-16 rounded-full bg-gradient-to-r ${role.color} flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform duration-200`}>
+                  {role.icon}
+                </div>
+
+                {/* Role Information */}
+                <div>
+                  <h3 className={`text-lg font-bold ${role.textColor} mb-2`}>
+                    {role.name}
+                  </h3>
+                  <p className="text-gray-600 text-sm leading-relaxed mb-4">
+                    {role.description}
+                  </p>
+                  
+                  {/* Action Button */}
+                  <div className={`inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r ${role.color} text-white rounded-lg text-sm font-medium group-hover:shadow-md transition-shadow duration-200`}>
+                    <Plus className="w-4 h-4" />
+                    Create {role.name}
+                  </div>
+                </div>
+
+                {/* Hover Effect Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent to-white opacity-0 group-hover:opacity-10 transition-opacity duration-200 rounded-xl" />
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Additional Information */}
+          <div className="mt-8 p-6 bg-gray-50 rounded-xl border border-gray-200">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <AlertCircle className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-2">Important Information</h4>
+                <ul className="text-sm text-gray-600 space-y-1">
+                  <li>• Each worker type has specific form fields and requirements</li>
+                  <li>• Anganwadi Workers require additional qualifications and gender verification</li>
+                  <li>• All workers will receive login credentials via email</li>
+                  <li>• You can modify worker details after account creation</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Cancel Button */}
+          <div className="flex justify-end mt-6">
+            <button
+              onClick={onClose}
+              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       </motion.div>
     </div>

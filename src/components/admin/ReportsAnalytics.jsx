@@ -225,7 +225,8 @@ const ReportsAnalytics = () => {
 
   const showNotification = (type, message) => {
     setNotification({ type, message });
-    setTimeout(() => setNotification(null), 5000);
+    const timeout = type === 'info' ? 3000 : 5000;
+    setTimeout(() => setNotification(null), timeout);
   };
 
   const handleFilterChange = (key, value) => {
@@ -326,17 +327,172 @@ const ReportsAnalytics = () => {
           className={`p-4 rounded-lg flex items-center space-x-3 ${
             notification.type === 'success'
               ? 'bg-green-50 text-green-800 border border-green-200'
+              : notification.type === 'info'
+              ? 'bg-blue-50 text-blue-800 border border-blue-200'
               : 'bg-red-50 text-red-800 border border-red-200'
           }`}
         >
           {notification.type === 'success' ? (
             <CheckCircle className="w-5 h-5" />
+          ) : notification.type === 'info' ? (
+            <Activity className="w-5 h-5" />
           ) : (
             <AlertCircle className="w-5 h-5" />
           )}
           <span>{notification.message}</span>
         </motion.div>
       )}
+
+      {/* Enhanced Basic Analytics Section */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-100 rounded-xl p-6 shadow-lg border border-blue-200">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">📊 Basic Analytics Overview</h2>
+            <p className="text-gray-600 mt-1">Key metrics and counts for system monitoring</p>
+          </div>
+          <div className="flex items-center space-x-2">
+            <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+            <span className="text-sm text-gray-600">Live Data</span>
+          </div>
+        </div>
+        
+        {dashboardStats && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            {/* Workers Count */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-white rounded-lg p-4 shadow-md border border-gray-200 hover:shadow-lg transition-shadow"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Users className="w-6 h-6 text-blue-600" />
+                </div>
+                <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-full">Staff</span>
+              </div>
+              <div className="space-y-1">
+                <p className="text-2xl font-bold text-gray-900">{reportsService.formatNumber(dashboardStats.overview.totalWorkers)}</p>
+                <p className="text-sm font-medium text-gray-700">Total Workers</p>
+                <p className="text-xs text-gray-500">AWW + ASHA Volunteers</p>
+              </div>
+            </motion.div>
+
+            {/* Children Count */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.1 }}
+              className="bg-white rounded-lg p-4 shadow-md border border-gray-200 hover:shadow-lg transition-shadow"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 bg-pink-100 rounded-lg">
+                  <Baby className="w-6 h-6 text-pink-600" />
+                </div>
+                <span className="text-xs font-medium text-pink-600 bg-pink-50 px-2 py-1 rounded-full">Kids</span>
+              </div>
+              <div className="space-y-1">
+                <p className="text-2xl font-bold text-gray-900">{reportsService.formatNumber(dashboardStats.overview.totalChildren)}</p>
+                <p className="text-sm font-medium text-gray-700">Children Enrolled</p>
+                <p className="text-xs text-gray-500">Ages 0-6 years</p>
+              </div>
+            </motion.div>
+
+            {/* Parents (Pregnant Women) Count */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2 }}
+              className="bg-white rounded-lg p-4 shadow-md border border-gray-200 hover:shadow-lg transition-shadow"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 bg-purple-100 rounded-lg">
+                  <Heart className="w-6 h-6 text-purple-600" />
+                </div>
+                <span className="text-xs font-medium text-purple-600 bg-purple-50 px-2 py-1 rounded-full">Mothers</span>
+              </div>
+              <div className="space-y-1">
+                <p className="text-2xl font-bold text-gray-900">{reportsService.formatNumber(dashboardStats.overview.totalPregnantWomen)}</p>
+                <p className="text-sm font-medium text-gray-700">Pregnant Women</p>
+                <p className="text-xs text-gray-500">Expecting mothers</p>
+              </div>
+            </motion.div>
+
+            {/* Adolescents Count */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.3 }}
+              className="bg-white rounded-lg p-4 shadow-md border border-gray-200 hover:shadow-lg transition-shadow"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <UserCheck className="w-6 h-6 text-green-600" />
+                </div>
+                <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">Teens</span>
+              </div>
+              <div className="space-y-1">
+                <p className="text-2xl font-bold text-gray-900">{reportsService.formatNumber(dashboardStats.overview.totalAdolescents)}</p>
+                <p className="text-sm font-medium text-gray-700">Adolescents</p>
+                <p className="text-xs text-gray-500">10-19 years</p>
+              </div>
+            </motion.div>
+
+            {/* Anganwadi Centers Count */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.4 }}
+              className="bg-white rounded-lg p-4 shadow-md border border-gray-200 hover:shadow-lg transition-shadow"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 bg-orange-100 rounded-lg">
+                  <Building2 className="w-6 h-6 text-orange-600" />
+                </div>
+                <span className="text-xs font-medium text-orange-600 bg-orange-50 px-2 py-1 rounded-full">Centers</span>
+              </div>
+              <div className="space-y-1">
+                <p className="text-2xl font-bold text-gray-900">{reportsService.formatNumber(dashboardStats.overview.totalAnganwadis)}</p>
+                <p className="text-sm font-medium text-gray-700">Anganwadi Centers</p>
+                <p className="text-xs text-gray-500">Active locations</p>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Quick Summary Bar */}
+        {dashboardStats && (
+          <div className="mt-6 bg-white rounded-lg p-4 border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="text-center">
+                  <p className="text-lg font-bold text-blue-600">{reportsService.formatNumber(dashboardStats.overview.totalBeneficiaries)}</p>
+                  <p className="text-xs text-gray-600">Total Beneficiaries</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-lg font-bold text-green-600">
+                    {dashboardStats.overview.totalWorkers > 0 
+                      ? Math.round(dashboardStats.overview.totalBeneficiaries / dashboardStats.overview.totalWorkers) 
+                      : 0}:1
+                  </p>
+                  <p className="text-xs text-gray-600">Worker Ratio</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-lg font-bold text-purple-600">
+                    {dashboardStats.overview.totalAnganwadis > 0 
+                      ? Math.round(dashboardStats.overview.totalBeneficiaries / dashboardStats.overview.totalAnganwadis) 
+                      : 0}
+                  </p>
+                  <p className="text-xs text-gray-600">Avg per Center</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-gray-600">Last Updated: {new Date().toLocaleTimeString()}</p>
+                <p className="text-xs text-gray-500">Real-time data</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Overview Statistics */}
       {dashboardStats && (

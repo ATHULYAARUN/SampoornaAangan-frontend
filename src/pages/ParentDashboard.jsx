@@ -5,6 +5,10 @@ import parentService from '../services/parentService';
 import authService from '../services/authService';
 import sessionManager from '../utils/sessionManager';
 import ChildDetailsCard from '../components/Parent/ChildDetailsCard';
+import ParentHealthGrowthMultiChild from '../components/Parent/ParentHealthGrowthMultiChild';
+import ParentAttendanceTracker from '../components/Parent/ParentAttendanceTracker';
+import ParentFeedbackSystem from '../components/parent/ParentFeedbackSystem';
+import WelfareBenefitsSimple from '../components/WelfareBenefitsSimple';
 import { 
   Baby, 
   Users, 
@@ -419,33 +423,13 @@ const ParentDashboard = () => {
           </div>
         );
       case 'health':
-        return (
-          <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-            <h2 className="text-2xl font-bold text-black mb-4">Health & Growth Charts</h2>
-            <p className="text-gray-600">Interactive growth charts showing your children's height, weight, and development progress over time will be displayed here.</p>
-          </div>
-        );
+        return <ParentHealthGrowthMultiChild />;
       case 'attendance':
-        return (
-          <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-            <h2 className="text-2xl font-bold text-black mb-4">Attendance Records</h2>
-            <p className="text-gray-600">View your children's daily attendance records and monthly statistics.</p>
-          </div>
-        );
+        return <ParentAttendanceTracker />;
       case 'benefits':
-        return (
-          <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-            <h2 className="text-2xl font-bold text-black mb-4">Welfare Benefits</h2>
-            <p className="text-gray-600">Track all welfare scheme benefits, allowances, and support received for your family will be displayed here.</p>
-          </div>
-        );
+        return <WelfareBenefitsSimple />;
       case 'feedback':
-        return (
-          <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-            <h2 className="text-2xl font-bold text-black mb-4">Submit Feedback</h2>
-            <p className="text-gray-600">Submit feedback about hygiene, sanitation, and anganwadi services will be available here.</p>
-          </div>
-        );
+        return <ParentFeedbackSystem />;
       default:
         return renderOverview();
     }

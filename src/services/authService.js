@@ -493,35 +493,76 @@ class AuthService {
     try {
       console.log('📧 Sending password reset email to:', email);
       
-      await sendPasswordResetEmail(auth, email);
-      
-      console.log('✅ Password reset email sent successfully');
-      
-      return {
-        success: true,
-        message: 'Password reset email sent successfully. Please check your inbox.'
-      };
+      // Try backend password reset first (works for all users including admins and workers)
+      try {
+        console.log('🔄 Trying backend password reset...');
+        
+        const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ email })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+          console.log('✅ Backend password reset email sent successfully');
+          return {
+            success: true,
+            message: result.message || 'Password reset email sent successfully. Please check your inbox.',
+            method: 'backend'
+          };
+        } else {
+          console.log('❌ Backend password reset failed:', result.message);
+          // If backend fails, try Firebase as fallback
+          throw new Error(result.message || 'Backend password reset failed');
+        }
+        
+      } catch (backendError) {
+        console.warn('⚠️ Backend password reset failed, trying Firebase...', backendError.message);
+        
+        // Fallback to Firebase password reset
+        try {
+          await sendPasswordResetEmail(auth, email);
+          
+          console.log('✅ Firebase password reset email sent successfully');
+          
+          return {
+            success: true,
+            message: 'Password reset email sent successfully. Please check your inbox.',
+            method: 'firebase'
+          };
+          
+        } catch (firebaseError) {
+          console.error('❌ Both backend and Firebase password reset failed');
+          
+          let errorMessage = 'Failed to send password reset email';
+          
+          // Handle Firebase errors
+          switch (firebaseError.code) {
+            case 'auth/user-not-found':
+              errorMessage = 'No account found with this email address';
+              break;
+            case 'auth/invalid-email':
+              errorMessage = 'Invalid email address';
+              break;
+            case 'auth/too-many-requests':
+              errorMessage = 'Too many requests. Please try again later';
+              break;
+            default:
+              // Use backend error message if it's more descriptive
+              errorMessage = backendError.message || firebaseError.message || errorMessage;
+          }
+          
+          throw new Error(errorMessage);
+        }
+      }
       
     } catch (error) {
       console.error('❌ Password reset error:', error);
-      
-      let errorMessage = 'Failed to send password reset email';
-      
-      switch (error.code) {
-        case 'auth/user-not-found':
-          errorMessage = 'No account found with this email address';
-          break;
-        case 'auth/invalid-email':
-          errorMessage = 'Invalid email address';
-          break;
-        case 'auth/too-many-requests':
-          errorMessage = 'Too many requests. Please try again later';
-          break;
-        default:
-          errorMessage = error.message || errorMessage;
-      }
-      
-      throw new Error(errorMessage);
+      throw new Error(error.message || 'Failed to send password reset email');
     }
   }
 

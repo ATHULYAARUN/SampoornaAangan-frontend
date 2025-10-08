@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Test - Enrollment Tracking</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #e8f5e8; border-color: #4caf50; }
+        .error { background-color: #ffe8e8; border-color: #f44336; }
+        button { padding: 10px 20px; margin: 5px; background-color: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        pre { background-color: #f5f5f5; padding: 10px; border-radius: 3px; overflow-x: auto; }
+        .loading { opacity: 0.6; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Enrollment Tracking API Test</h1>
+    
+    <div class="test-section">
+        <h2>🔧 API Endpoints Test</h2>
+        <button onclick="testSchemes()">Test GET /api/schemes</button>
+        <button onclick="testEnrollments()">Test GET /api/enrollments</button>
+        <button onclick="testEnroll()">Test POST /api/enroll</button>
+        <button onclick="clearResults()">Clear Results</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+        const API_BASE = 'http://localhost:5005/api';
+        const resultsDiv = document.getElementById('results');
+
+        function addResult(title, data, isSuccess = true) {
+            const section = document.createElement('div');
+            section.className = `test-section ${isSuccess ? 'success' : 'error'}`;
+            section.innerHTML = `
+                <h3>${title}</h3>
+                <pre>${JSON.stringify(data, null, 2)}</pre>
+            `;
+            resultsDiv.appendChild(section);
+        }
+
+        function clearResults() {
+            resultsDiv.innerHTML = '';
+        }
+
+        async function testSchemes() {
+            try {
+                console.log('🧪 Testing GET /api/schemes...');
+                
+                const response = await fetch(`${API_BASE}/schemes`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                console.log('📊 Response status:', response.status);
+                console.log('📊 Response headers:', response.headers.get('content-type'));
+
+                const responseText = await response.text();
+                console.log('📋 Raw response:', responseText.substring(0, 200) + '...');
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${responseText}`);
+                }
+
+                const data = JSON.parse(responseText);
+                addResult('✅ GET /api/schemes - SUCCESS', {
+                    status: response.status,
+                    contentType: response.headers.get('content-type'),
+                    data: data
+                });
+
+            } catch (error) {
+                console.error('❌ Error testing schemes:', error);
+                addResult('❌ GET /api/schemes - ERROR', {
+                    error: error.message,
+                    stack: error.stack
+                }, false);
+            }
+        }
+
+        async function testEnrollments() {
+            try {
+                console.log('🧪 Testing GET /api/enrollments...');
+                
+                const response = await fetch(`${API_BASE}/enrollments`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                console.log('📊 Response status:', response.status);
+                console.log('📊 Response headers:', response.headers.get('content-type'));
+
+                const responseText = await response.text();
+                console.log('📋 Raw response:', responseText);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${responseText}`);
+                }
+
+                const data = JSON.parse(responseText);
+                addResult('✅ GET /api/enrollments - SUCCESS', {
+                    status: response.status,
+                    contentType: response.headers.get('content-type'),
+                    data: data
+                });
+
+            } catch (error) {
+                console.error('❌ Error testing enrollments:', error);
+                addResult('❌ GET /api/enrollments - ERROR', {
+                    error: error.message,
+                    stack: error.stack
+                }, false);
+            }
+        }
+
+        async function testEnroll() {
+            try {
+                console.log('🧪 Testing POST /api/enroll...');
+                
+                const enrollData = {
+                    schemeId: 'pmcare',
+                    parentName: 'Test Parent',
+                    childName: 'Test Child'
+                };
+
+                const response = await fetch(`${API_BASE}/enroll`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(enrollData)
+                });
+
+                console.log('📊 Response status:', response.status);
+                console.log('📊 Response headers:', response.headers.get('content-type'));
+
+                const responseText = await response.text();
+                console.log('📋 Raw response:', responseText);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${responseText}`);
+                }
+
+                const data = JSON.parse(responseText);
+                addResult('✅ POST /api/enroll - SUCCESS', {
+                    status: response.status,
+                    contentType: response.headers.get('content-type'),
+                    requestData: enrollData,
+                    responseData: data
+                });
+
+            } catch (error) {
+                console.error('❌ Error testing enrollment:', error);
+                addResult('❌ POST /api/enroll - ERROR', {
+                    error: error.message,
+                    stack: error.stack
+                }, false);
+            }
+        }
+
+        // Auto-test on page load
+        window.addEventListener('load', () => {
+            console.log('🚀 Page loaded, starting API tests...');
+            setTimeout(() => {
+                testSchemes();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

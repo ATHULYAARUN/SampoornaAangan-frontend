@@ -155,7 +155,11 @@ class ParentService {
           nutritionStatus: child.nutritionStatus || 'normal',
           anganwadiCenter: child.anganwadiCenter || 'Not assigned',
           lastCheckup: child.updatedAt || new Date(),
-          nextCheckup: child.nextCheckup || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+          nextCheckup: child.nextCheckup || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          // Add missing database fields
+          dateOfBirth: child.dateOfBirth,
+          bloodGroup: child.bloodGroup,
+          enrollmentDate: child.enrollmentDate
         }))
       };
 

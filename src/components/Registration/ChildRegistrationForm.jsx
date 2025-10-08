@@ -11,7 +11,8 @@ import {
   X,
   AlertCircle,
   Upload,
-  FileText
+  FileText,
+  Building
 } from 'lucide-react';
 
 const ChildRegistrationForm = ({ onSubmit, onCancel, isLoading = false }) => {
@@ -49,6 +50,42 @@ const ChildRegistrationForm = ({ onSubmit, onCancel, isLoading = false }) => {
 
   const [errors, setErrors] = useState({});
   const [currentAllergy, setCurrentAllergy] = useState('');
+
+  // Anganwadi Centers from database
+  const anganwadiCenters = [
+    {
+      id: 1,
+      name: 'Akkarakkunnu Anganwadi',
+      code: 'AWC09001',
+      location: 'Akkarakkunnu, Kottayam, Kerala',
+      ward: 9
+    },
+    {
+      id: 2,
+      name: 'Veliyanoor Anganwadi',
+      code: 'AWC09002',
+      location: 'Veliyanoor, Kottayam, Kerala',
+      ward: 9
+    }
+  ];
+
+  // Helper function to calculate age
+  const calculateAge = (dateOfBirth) => {
+    if (!dateOfBirth) return null;
+    const dob = new Date(dateOfBirth);
+    const today = new Date();
+    const ageInYears = Math.floor((today - dob) / (365.25 * 24 * 60 * 60 * 1000));
+    const ageInMonths = Math.floor((today - dob) / (30.44 * 24 * 60 * 60 * 1000));
+    
+    if (ageInYears >= 1) {
+      return `${ageInYears} year${ageInYears !== 1 ? 's' : ''} old`;
+    } else {
+      return `${ageInMonths} month${ageInMonths !== 1 ? 's' : ''} old`;
+    }
+  };
+
+  // Get current age for display
+  const currentAge = calculateAge(formData.dateOfBirth);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -172,12 +209,22 @@ const ChildRegistrationForm = ({ onSubmit, onCancel, isLoading = false }) => {
       newErrors['address.pincode'] = 'Please enter a valid 6-digit pincode';
     }
 
-    // Validate date of birth (should not be in future)
+    // Validate date of birth (should not be in future and age should be 3-6 years)
     if (formData.dateOfBirth) {
       const dob = new Date(formData.dateOfBirth);
       const today = new Date();
+      
       if (dob > today) {
         newErrors.dateOfBirth = 'Date of birth cannot be in the future';
+      } else {
+        // Calculate age in years
+        const ageInYears = Math.floor((today - dob) / (365.25 * 24 * 60 * 60 * 1000));
+        
+        if (ageInYears < 3) {
+          newErrors.dateOfBirth = 'Child must be at least 3 years old for Anganwadi registration';
+        } else if (ageInYears > 6) {
+          newErrors.dateOfBirth = 'Child must be 6 years old or younger for Anganwadi registration';
+        }
       }
     }
 
@@ -256,8 +303,41 @@ const ChildRegistrationForm = ({ onSubmit, onCancel, isLoading = false }) => {
                 value={formData.dateOfBirth}
                 onChange={handleChange}
                 className={`${inputClass} pl-12`}
+                max={new Date().toISOString().split('T')[0]}
               />
             </div>
+            {/* Age Display */}
+            {formData.dateOfBirth && (
+              <div className="mt-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">
+                    Current Age: <span className="font-medium text-blue-600">{currentAge}</span>
+                  </span>
+                  {(() => {
+                    const dob = new Date(formData.dateOfBirth);
+                    const today = new Date();
+                    const ageInYears = Math.floor((today - dob) / (365.25 * 24 * 60 * 60 * 1000));
+                    
+                    if (ageInYears >= 3 && ageInYears <= 6) {
+                      return (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          ✓ Eligible for Anganwadi
+                        </span>
+                      );
+                    } else {
+                      return (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                          ✗ Not eligible (Age: 3-6 years required)
+                        </span>
+                      );
+                    }
+                  })()}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  ℹ️ Anganwadi services are for children aged 3-6 years
+                </p>
+              </div>
+            )}
             {errors.dateOfBirth && <p className={errorClass}>{errors.dateOfBirth}</p>}
           </div>
 
@@ -283,14 +363,45 @@ const ChildRegistrationForm = ({ onSubmit, onCancel, isLoading = false }) => {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Anganwadi Center *
             </label>
-            <input
-              type="text"
-              name="anganwadiCenter"
-              value={formData.anganwadiCenter}
-              onChange={handleChange}
-              className={inputClass}
-              placeholder="Enter anganwadi center name"
-            />
+            <div className="relative">
+              <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <select
+                name="anganwadiCenter"
+                value={formData.anganwadiCenter}
+                onChange={handleChange}
+                className={`${inputClass} pl-12`}
+              >
+                <option value="">Select Anganwadi Center</option>
+                {anganwadiCenters.map(center => (
+                  <option key={center.id} value={center.name}>
+                    {center.name} - {center.location} (Ward {center.ward})
+                  </option>
+                ))}
+              </select>
+            </div>
+            {/* Center Information Display */}
+            {formData.anganwadiCenter && (
+              <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                {(() => {
+                  const selectedCenter = anganwadiCenters.find(center => center.name === formData.anganwadiCenter);
+                  if (selectedCenter) {
+                    return (
+                      <div className="text-sm">
+                        <div className="flex items-center gap-2 text-blue-800">
+                          <Building className="w-4 h-4" />
+                          <span className="font-medium">{selectedCenter.name}</span>
+                          <span className="text-blue-600">({selectedCenter.code})</span>
+                        </div>
+                        <div className="text-blue-700 mt-1">
+                          📍 {selectedCenter.location}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+              </div>
+            )}
             {errors.anganwadiCenter && <p className={errorClass}>{errors.anganwadiCenter}</p>}
           </div>
 
