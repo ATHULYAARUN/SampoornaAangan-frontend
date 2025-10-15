@@ -26,11 +26,11 @@ const ChildRegistrationForm = ({ onSubmit, onCancel, isLoading = false }) => {
     relationToChild: '',
     address: {
       street: '',
-      village: '',
-      block: '',
-      district: '',
-      state: '',
-      pincode: ''
+      village: 'Elikkullam',
+      block: 'Pampady',
+      district: 'Kottayam',
+      state: 'Kerala',
+      pincode: '686522'
     },
     anganwadiCenter: '',
     birthCertificate: null,
@@ -90,6 +90,32 @@ const ChildRegistrationForm = ({ onSubmit, onCancel, isLoading = false }) => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     
+    // Prevent modification of default location fields
+    const nonEditableFields = ['address.village', 'address.block', 'address.district', 'address.state', 'address.pincode'];
+    if (nonEditableFields.includes(name)) {
+      return; // Don't allow changes to these fields
+    }
+    
+    // Block numbers in name fields (child name and parent name)
+    if (name === 'name' || name === 'parentName') {
+      // Only allow letters and spaces - block any input with numbers
+      if (/[0-9]/.test(value)) {
+        return; // Don't update state if numbers are detected
+      }
+    }
+    
+    // Block non-numeric input in phone field
+    if (name === 'parentPhone') {
+      // Only allow digits (0-9)
+      if (!/^[0-9]*$/.test(value)) {
+        return; // Don't update state if non-digits are detected
+      }
+      // Limit to 10 digits maximum
+      if (value.length > 10) {
+        return;
+      }
+    }
+    
     if (name.includes('.')) {
       const [parent, child] = name.split('.');
       setFormData(prev => ({
@@ -112,6 +138,22 @@ const ChildRegistrationForm = ({ onSubmit, onCancel, isLoading = false }) => {
         ...prev,
         [name]: ''
       }));
+    }
+  };
+
+  // Helper function to block number input in name fields
+  const handleNameKeyPress = (e) => {
+    // Block numbers (0-9) from being typed
+    if (/[0-9]/.test(e.key)) {
+      e.preventDefault();
+    }
+  };
+
+  // Helper function to allow only numbers in phone field
+  const handlePhoneKeyPress = (e) => {
+    // Allow only numbers, backspace, delete, and navigation keys
+    if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.key)) {
+      e.preventDefault();
     }
   };
 
@@ -177,36 +219,50 @@ const ChildRegistrationForm = ({ onSubmit, onCancel, isLoading = false }) => {
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.name.trim()) newErrors.name = 'Child name is required';
+    // Child name validation - must be exactly two words (first name and last name)
+    if (!formData.name.trim()) {
+      newErrors.name = 'Child name is required';
+    } else {
+      const nameWords = formData.name.trim().split(' ').filter(word => word.length > 0);
+      if (nameWords.length !== 2) {
+        newErrors.name = 'Child name must contain exactly two words (First Name and Last Name)';
+      } else if (!/^[a-zA-Z\s]+$/.test(formData.name)) {
+        newErrors.name = 'Child name must contain only letters and spaces';
+      }
+    }
+
     if (!formData.dateOfBirth) newErrors.dateOfBirth = 'Date of birth is required';
     if (!formData.gender) newErrors.gender = 'Gender is required';
-    if (!formData.parentName.trim()) newErrors.parentName = 'Parent name is required';
-    if (!formData.parentPhone.trim()) newErrors.parentPhone = 'Parent phone is required';
+    
+    // Parent name validation - only letters and spaces allowed
+    if (!formData.parentName.trim()) {
+      newErrors.parentName = 'Parent name is required';
+    } else if (!/^[a-zA-Z\s]+$/.test(formData.parentName)) {
+      newErrors.parentName = 'Parent name must contain only letters and spaces';
+    }
+
+    // Phone validation - exactly 10 digits
+    if (!formData.parentPhone.trim()) {
+      newErrors.parentPhone = 'Parent phone is required';
+    } else {
+      const phoneDigits = formData.parentPhone.replace(/\D/g, ''); // Remove all non-digits
+      if (phoneDigits.length !== 10) {
+        newErrors.parentPhone = 'Phone number must be exactly 10 digits';
+      } else if (!/^[6-9][0-9]{9}$/.test(phoneDigits)) {
+        newErrors.parentPhone = 'Please enter a valid Indian mobile number (starting with 6, 7, 8, or 9)';
+      }
+    }
+
     if (!formData.relationToChild) newErrors.relationToChild = 'Relation to child is required';
     if (!formData.address.street.trim()) newErrors['address.street'] = 'Street address is required';
-    if (!formData.address.village.trim()) newErrors['address.village'] = 'Village is required';
-    if (!formData.address.block.trim()) newErrors['address.block'] = 'Block is required';
-    if (!formData.address.district.trim()) newErrors['address.district'] = 'District is required';
-    if (!formData.address.state.trim()) newErrors['address.state'] = 'State is required';
-    if (!formData.address.pincode.trim()) newErrors['address.pincode'] = 'Pincode is required';
     if (!formData.anganwadiCenter.trim()) newErrors.anganwadiCenter = 'Anganwadi center is required';
 
-    // Validate phone number
-    const phoneRegex = /^(\+91\s?)?[0-9]{10}$/;
-    if (formData.parentPhone && !phoneRegex.test(formData.parentPhone)) {
-      newErrors.parentPhone = 'Please enter a valid phone number';
-    }
-
-    // Validate email if provided
-    const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
-    if (formData.parentEmail && !emailRegex.test(formData.parentEmail)) {
-      newErrors.parentEmail = 'Please enter a valid email address';
-    }
-
-    // Validate pincode
-    const pincodeRegex = /^[0-9]{6}$/;
-    if (formData.address.pincode && !pincodeRegex.test(formData.address.pincode)) {
-      newErrors['address.pincode'] = 'Please enter a valid 6-digit pincode';
+    // Email validation - stricter pattern
+    if (formData.parentEmail && formData.parentEmail.trim()) {
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      if (!emailRegex.test(formData.parentEmail)) {
+        newErrors.parentEmail = 'Please enter a valid email address (e.g., user@example.com)';
+      }
     }
 
     // Validate date of birth (should not be in future and age should be 3-6 years)
@@ -275,7 +331,7 @@ const ChildRegistrationForm = ({ onSubmit, onCancel, isLoading = false }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Child Name *
+              Child Name * (First Name and Last Name)
             </label>
             <div className="relative">
               <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -284,11 +340,15 @@ const ChildRegistrationForm = ({ onSubmit, onCancel, isLoading = false }) => {
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
+                onKeyPress={handleNameKeyPress}
                 className={`${inputClass} pl-12`}
-                placeholder="Enter child's full name"
+                placeholder="e.g., Arjun Kumar (two words only)"
               />
             </div>
             {errors.name && <p className={errorClass}>{errors.name}</p>}
+            <p className="text-xs text-gray-500 mt-1">
+              ℹ️ Enter exactly two words: First Name and Last Name
+            </p>
           </div>
 
           <div>
@@ -467,7 +527,7 @@ const ChildRegistrationForm = ({ onSubmit, onCancel, isLoading = false }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Parent/Guardian Name *
+                Parent/Guardian Name * (letters only)
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -476,16 +536,20 @@ const ChildRegistrationForm = ({ onSubmit, onCancel, isLoading = false }) => {
                   name="parentName"
                   value={formData.parentName}
                   onChange={handleChange}
+                  onKeyPress={handleNameKeyPress}
                   className={`${inputClass} pl-12`}
-                  placeholder="Enter parent/guardian name"
+                  placeholder="e.g., Priya Nair (letters and spaces only)"
                 />
               </div>
               {errors.parentName && <p className={errorClass}>{errors.parentName}</p>}
+              <p className="text-xs text-gray-500 mt-1">
+                ℹ️ Only letters and spaces allowed
+              </p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Phone Number *
+                Phone Number * (10 digits)
               </label>
               <div className="relative">
                 <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -494,16 +558,21 @@ const ChildRegistrationForm = ({ onSubmit, onCancel, isLoading = false }) => {
                   name="parentPhone"
                   value={formData.parentPhone}
                   onChange={handleChange}
+                  onKeyPress={handlePhoneKeyPress}
                   className={`${inputClass} pl-12`}
-                  placeholder="Enter phone number"
+                  placeholder="e.g., 9876543210 (10 digits only)"
+                  maxLength={10}
                 />
               </div>
               {errors.parentPhone && <p className={errorClass}>{errors.parentPhone}</p>}
+              <p className="text-xs text-gray-500 mt-1">
+                ℹ️ Enter exactly 10 digits (Indian mobile number)
+              </p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
+                Email Address (optional)
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -513,10 +582,13 @@ const ChildRegistrationForm = ({ onSubmit, onCancel, isLoading = false }) => {
                   value={formData.parentEmail}
                   onChange={handleChange}
                   className={`${inputClass} pl-12`}
-                  placeholder="Enter email address (optional)"
+                  placeholder="e.g., priya@gmail.com (valid email format)"
                 />
               </div>
               {errors.parentEmail && <p className={errorClass}>{errors.parentEmail}</p>}
+              <p className="text-xs text-gray-500 mt-1">
+                ℹ️ Optional: Enter valid email format (user@domain.com)
+              </p>
             </div>
 
             <div>
@@ -547,6 +619,16 @@ const ChildRegistrationForm = ({ onSubmit, onCancel, isLoading = false }) => {
         {/* Address Information */}
         <div className="border-t pt-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Address Information</h3>
+          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <MapPin className="w-5 h-5 text-blue-600" />
+              <span className="font-medium text-blue-800">Default Location (Kerala)</span>
+            </div>
+            <p className="text-sm text-blue-700">
+              The following location details are pre-filled for Kerala region and cannot be modified:
+            </p>
+          </div>
+          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -560,7 +642,7 @@ const ChildRegistrationForm = ({ onSubmit, onCancel, isLoading = false }) => {
                   onChange={handleChange}
                   rows={2}
                   className={`${inputClass} pl-12`}
-                  placeholder="Enter complete street address"
+                  placeholder="Enter house number, street name, and locality"
                 />
               </div>
               {errors['address.street'] && <p className={errorClass}>{errors['address.street']}</p>}
@@ -568,78 +650,87 @@ const ChildRegistrationForm = ({ onSubmit, onCancel, isLoading = false }) => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Village *
+                Village (Default: Elikkullam)
               </label>
               <input
                 type="text"
                 name="address.village"
                 value={formData.address.village}
-                onChange={handleChange}
-                className={inputClass}
-                placeholder="Enter village name"
+                className={`${inputClass} bg-gray-100 cursor-not-allowed`}
+                readOnly
+                disabled
               />
-              {errors['address.village'] && <p className={errorClass}>{errors['address.village']}</p>}
+              <p className="text-xs text-gray-500 mt-1">
+                ✓ Default value for Kerala region
+              </p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Block *
+                Block (Default: Pampady)
               </label>
               <input
                 type="text"
                 name="address.block"
                 value={formData.address.block}
-                onChange={handleChange}
-                className={inputClass}
-                placeholder="Enter block name"
+                className={`${inputClass} bg-gray-100 cursor-not-allowed`}
+                readOnly
+                disabled
               />
-              {errors['address.block'] && <p className={errorClass}>{errors['address.block']}</p>}
+              <p className="text-xs text-gray-500 mt-1">
+                ✓ Default value for Kerala region
+              </p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                District *
+                District (Default: Kottayam)
               </label>
               <input
                 type="text"
                 name="address.district"
                 value={formData.address.district}
-                onChange={handleChange}
-                className={inputClass}
-                placeholder="Enter district name"
+                className={`${inputClass} bg-gray-100 cursor-not-allowed`}
+                readOnly
+                disabled
               />
-              {errors['address.district'] && <p className={errorClass}>{errors['address.district']}</p>}
+              <p className="text-xs text-gray-500 mt-1">
+                ✓ Default value for Kerala region
+              </p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                State *
+                State (Default: Kerala)
               </label>
               <input
                 type="text"
                 name="address.state"
                 value={formData.address.state}
-                onChange={handleChange}
-                className={inputClass}
-                placeholder="Enter state name"
+                className={`${inputClass} bg-gray-100 cursor-not-allowed`}
+                readOnly
+                disabled
               />
-              {errors['address.state'] && <p className={errorClass}>{errors['address.state']}</p>}
+              <p className="text-xs text-gray-500 mt-1">
+                ✓ Default value for Kerala region
+              </p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Pincode *
+                Pincode (Default: 686522)
               </label>
               <input
                 type="text"
                 name="address.pincode"
                 value={formData.address.pincode}
-                onChange={handleChange}
-                className={inputClass}
-                placeholder="Enter 6-digit pincode"
-                maxLength={6}
+                className={`${inputClass} bg-gray-100 cursor-not-allowed`}
+                readOnly
+                disabled
               />
-              {errors['address.pincode'] && <p className={errorClass}>{errors['address.pincode']}</p>}
+              <p className="text-xs text-gray-500 mt-1">
+                ✓ Default pincode for Kerala region
+              </p>
             </div>
           </div>
         </div>

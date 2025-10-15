@@ -7,6 +7,8 @@ import ReportsAnalyticsDebug from "../components/ReportsAnalyticsDebug";
 import SimpleReportsTest from "../components/admin/SimpleReportsTest";
 import SystemSettings from "../components/admin/SystemSettings";
 import HealthMonitoring from "../components/admin/HealthMonitoring";
+import HealthMonitoringTest from "../components/admin/HealthMonitoringTest";
+import HealthMonitoringSimple from "../components/admin/HealthMonitoringSimple";
 import ErrorBoundary from "../components/ErrorBoundary";
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -783,7 +785,7 @@ const AdminDashboard = () => {
 
   const renderHealthMonitoring = () => (
     <ErrorBoundary>
-      <HealthMonitoring />
+      <HealthMonitoringSimple />
     </ErrorBoundary>
   );
 

@@ -12,7 +12,7 @@ import {
 import sessionManager from '../utils/sessionManager';
 
 // API base URL - use relative path for Vite proxy
-const API_BASE_URL = '/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
 class AuthService {
   // Register user with Firebase and backend
@@ -139,10 +139,19 @@ class AuthService {
           })
         });
         
-        result = await response.json().catch(() => ({ 
-          message: 'Server error - unable to parse response',
-          success: false 
-        }));
+        try {
+          const responseText = await response.text();
+          console.log('🔍 Firebase auth response text:', responseText);
+          
+          if (!responseText) {
+            throw new Error('Empty response from server');
+          }
+          
+          result = JSON.parse(responseText);
+        } catch (jsonError) {
+          console.error('❌ JSON parsing error in Firebase auth:', jsonError);
+          throw new Error('Server returned invalid response. Please try again.');
+        }
         
         if (!response.ok) {
           throw new Error(result.message || 'Firebase login failed');
@@ -177,8 +186,20 @@ class AuthService {
           })
         });
         
-        result = await response.json();
-        console.log('📊 Direct auth response:', result);
+        try {
+          const responseText = await response.text();
+          console.log('🔍 Direct auth response text:', responseText);
+          
+          if (!responseText) {
+            throw new Error('Empty response from server');
+          }
+          
+          result = JSON.parse(responseText);
+          console.log('📊 Direct auth response:', result);
+        } catch (jsonError) {
+          console.error('❌ JSON parsing error in direct auth:', jsonError);
+          throw new Error('Server returned invalid response. Please try again.');
+        }
         
         if (!response.ok) {
           console.error('❌ Direct authentication failed:', result);
@@ -252,8 +273,25 @@ class AuthService {
         })
       });
 
-      const result = await response.json();
-      console.log('Admin login response:', result);
+      console.log('🔍 Response status:', response.status);
+      console.log('🔍 Response headers:', response.headers.get('content-type'));
+
+      let result;
+      try {
+        const responseText = await response.text();
+        console.log('🔍 Raw response:', responseText);
+        
+        if (!responseText) {
+          throw new Error('Empty response from server');
+        }
+        
+        result = JSON.parse(responseText);
+        console.log('📊 Parsed admin login response:', result);
+      } catch (jsonError) {
+        console.error('❌ JSON parsing error:', jsonError);
+        console.error('❌ Response was not valid JSON');
+        throw new Error('Server returned invalid response. Please try again.');
+      }
 
       if (!response.ok) {
         throw new Error(result.message || 'Admin login failed');
