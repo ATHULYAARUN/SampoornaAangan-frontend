@@ -28,7 +28,7 @@ const RegisterPage = () => {
       street: '',
       ward: '',
       city: '',
-      state: '',
+      state: 'Kerala',  // Default value set to Kerala
       pincode: ''
     },
     // Family/Child Details
@@ -226,8 +226,10 @@ const RegisterPage = () => {
       case 'email':
         if (!value.trim()) {
           errors.email = 'Email address is required';
+        } else if (!value.includes('@')) {
+          errors.email = 'Email must contain @ symbol';
         } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())) {
-          errors.email = 'Please enter a valid email address';
+          errors.email = 'Please enter a valid email address (e.g., user@example.com)';
         }
         break;
 
@@ -239,6 +241,8 @@ const RegisterPage = () => {
           errors[name] = 'Phone number must be exactly 10 digits';
         } else if (value.trim() === '0000000000') {
           errors[name] = 'Phone number cannot be all zeros';
+        } else if (/0{4,}/.test(value.trim())) {
+          errors[name] = 'Phone number cannot have more than 3 consecutive zeros';
         }
         break;
 
@@ -561,12 +565,24 @@ const RegisterPage = () => {
     // Format specific fields
     let formattedValue = value;
 
-    if (name === 'pincode' || name === 'address.pincode') {
-      // Only allow numbers and limit to 6 digits
-      formattedValue = value.replace(/\D/g, '').slice(0, 6);
-    } else if (name === 'phone') {
+    // 🔒 Full Name validation - Only allow letters and spaces (block numbers/special characters)
+    if (name === 'name' || name === 'parentName') {
+      formattedValue = value.replace(/[^a-zA-Z\s]/g, '');
+    }
+    // 🔒 Phone number validation - Prevent more than 3 consecutive zeros
+    else if (name === 'phone') {
       // Only allow numbers and limit to 10 digits
       formattedValue = value.replace(/\D/g, '').slice(0, 10);
+      
+      // Check for more than 3 consecutive zeros
+      if (/0{4,}/.test(formattedValue)) {
+        // Prevent input by keeping old value
+        formattedValue = formData.phone || '';
+      }
+    }
+    else if (name === 'pincode' || name === 'address.pincode') {
+      // Only allow numbers and limit to 6 digits
+      formattedValue = value.replace(/\D/g, '').slice(0, 6);
     }
 
     // Handle nested address fields
@@ -797,15 +813,36 @@ const RegisterPage = () => {
                   </label>
                   <div className="relative">
                     <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
-                    <input
-                      type="text"
+                    <select
                       name="address.state"
                       value={formData.address.state}
                       onChange={handleChange}
                       className={inputClass}
-                      placeholder="State"
                       required
-                    />
+                    >
+                      <option value="Kerala">Kerala</option>
+                      <option value="Tamil Nadu">Tamil Nadu</option>
+                      <option value="Karnataka">Karnataka</option>
+                      <option value="Andhra Pradesh">Andhra Pradesh</option>
+                      <option value="Telangana">Telangana</option>
+                      <option value="Maharashtra">Maharashtra</option>
+                      <option value="Gujarat">Gujarat</option>
+                      <option value="Rajasthan">Rajasthan</option>
+                      <option value="Uttar Pradesh">Uttar Pradesh</option>
+                      <option value="Bihar">Bihar</option>
+                      <option value="West Bengal">West Bengal</option>
+                      <option value="Madhya Pradesh">Madhya Pradesh</option>
+                      <option value="Odisha">Odisha</option>
+                      <option value="Punjab">Punjab</option>
+                      <option value="Haryana">Haryana</option>
+                      <option value="Jharkhand">Jharkhand</option>
+                      <option value="Chhattisgarh">Chhattisgarh</option>
+                      <option value="Uttarakhand">Uttarakhand</option>
+                      <option value="Himachal Pradesh">Himachal Pradesh</option>
+                      <option value="Assam">Assam</option>
+                      <option value="Goa">Goa</option>
+                      <option value="Other">Other</option>
+                    </select>
                   </div>
                   {validationErrors['address.state'] && <p className="text-red-500 text-sm mt-1">{validationErrors['address.state']}</p>}
                 </div>
@@ -1179,7 +1216,7 @@ const RegisterPage = () => {
                 <div className="grid md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-black mb-2">
-                      Full Name *
+                      Full Name * <span className="text-xs text-gray-500">(letters only)</span>
                     </label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
@@ -1191,7 +1228,7 @@ const RegisterPage = () => {
                         className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-black ${
                           validationErrors.name ? 'border-red-500 bg-red-50' : 'border-gray-300'
                         }`}
-                        placeholder="Enter your full name"
+                        placeholder="Enter your full name (letters only)"
                         required
                       />
                       {validationErrors.name && (
@@ -1200,17 +1237,21 @@ const RegisterPage = () => {
                         </div>
                       )}
                     </div>
-                    {validationErrors.name && (
+                    {validationErrors.name ? (
                       <p className="mt-1 text-sm text-red-600 flex items-center">
                         <AlertCircle className="w-4 h-4 mr-1" />
                         {validationErrors.name}
+                      </p>
+                    ) : (
+                      <p className="mt-1 text-xs text-gray-500">
+                        ✓ Only letters and spaces allowed - numbers/special characters are blocked
                       </p>
                     )}
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-black mb-2">
-                      Email Address *
+                      Email Address * <span className="text-xs text-gray-500">(must contain @)</span>
                     </label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
@@ -1222,7 +1263,7 @@ const RegisterPage = () => {
                         className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-black ${
                           validationErrors.email ? 'border-red-500 bg-red-50' : 'border-gray-300'
                         }`}
-                        placeholder="Enter your email"
+                        placeholder="example@email.com"
                         required
                       />
                       {validationErrors.email && (
@@ -1230,11 +1271,25 @@ const RegisterPage = () => {
                           <AlertCircle className="w-5 h-5 text-red-500" />
                         </div>
                       )}
+                      {!validationErrors.email && formData.email && formData.email.includes('@') && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                          <CheckCircle className="w-5 h-5 text-green-500" />
+                        </div>
+                      )}
                     </div>
-                    {validationErrors.email && (
+                    {validationErrors.email ? (
                       <p className="mt-1 text-sm text-red-600 flex items-center">
                         <AlertCircle className="w-4 h-4 mr-1" />
                         {validationErrors.email}
+                      </p>
+                    ) : formData.email && formData.email.includes('@') ? (
+                      <p className="mt-1 text-xs text-green-600 flex items-center">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Valid email format
+                      </p>
+                    ) : (
+                      <p className="mt-1 text-xs text-gray-500">
+                        Must include @ symbol (e.g., user@example.com)
                       </p>
                     )}
                   </div>
@@ -1243,7 +1298,7 @@ const RegisterPage = () => {
                 <div className="grid md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-black mb-2">
-                      Phone Number *
+                      Phone Number * <span className="text-xs text-gray-500">(max 3 consecutive zeros)</span>
                     </label>
                     <div className="relative">
                       <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
@@ -1255,7 +1310,8 @@ const RegisterPage = () => {
                         className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-black ${
                           validationErrors.phone ? 'border-red-500 bg-red-50' : 'border-gray-300'
                         }`}
-                        placeholder="Enter your phone number"
+                        placeholder="10-digit phone number"
+                        maxLength="10"
                         required
                       />
                       {validationErrors.phone && (
@@ -1263,11 +1319,25 @@ const RegisterPage = () => {
                           <AlertCircle className="w-5 h-5 text-red-500" />
                         </div>
                       )}
+                      {!validationErrors.phone && formData.phone && formData.phone.length === 10 && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                          <CheckCircle className="w-5 h-5 text-green-500" />
+                        </div>
+                      )}
                     </div>
-                    {validationErrors.phone && (
+                    {validationErrors.phone ? (
                       <p className="mt-1 text-sm text-red-600 flex items-center">
                         <AlertCircle className="w-4 h-4 mr-1" />
                         {validationErrors.phone}
+                      </p>
+                    ) : formData.phone && formData.phone.length === 10 ? (
+                      <p className="mt-1 text-xs text-green-600 flex items-center">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Valid phone number
+                      </p>
+                    ) : (
+                      <p className="mt-1 text-xs text-gray-500">
+                        ✓ 10 digits only, no more than 3 consecutive zeros allowed
                       </p>
                     )}
                   </div>
