@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { Baby, Mail, Lock, Eye, EyeOff, User } from 'lucide-react';
 import authService from '../services/authService';
 import FirstTimePasswordChange from '../components/Auth/FirstTimePasswordChange';
-import ForgotPassword from '../components/auth/ForgotPassword';
+import ForgotPassword from '../components/Auth/ForgotPassword';
 import GoogleSignIn from '../components/auth/GoogleSignIn';
 import sessionManager from '../utils/sessionManager';
 
