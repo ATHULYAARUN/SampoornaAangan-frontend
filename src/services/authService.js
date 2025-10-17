@@ -12,7 +12,7 @@ import {
 import sessionManager from '../utils/sessionManager';
 
 // API base URL - use relative path for Vite proxy
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://sampoornaaangan-backend.onrender.com/api';
 
 class AuthService {
   // Register user with Firebase and backend

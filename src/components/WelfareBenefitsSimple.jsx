@@ -36,7 +36,7 @@ const WelfareBenefitsSimple = () => {
       console.log('🔗 Enrollments API URL: http://localhost:5005/api/schemes/enrollments');
       
       // Fetch schemes
-      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://sampoornaaangan-backend.onrender.com/api';
       const schemesResponse = await fetch(`${API_BASE_URL}/schemes`, {
         method: 'GET',
         headers: {
