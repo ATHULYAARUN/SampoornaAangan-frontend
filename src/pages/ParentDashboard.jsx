@@ -7,7 +7,7 @@ import sessionManager from '../utils/sessionManager';
 import ChildDetailsCard from '../components/Parent/ChildDetailsCard';
 import ParentHealthGrowthMultiChild from '../components/Parent/ParentHealthGrowthMultiChild';
 import ParentAttendanceTracker from '../components/Parent/ParentAttendanceTracker';
-import ParentFeedbackSystem from '../components/parent/ParentFeedbackSystem';
+import ParentFeedbackSystem from '../components/Parent/ParentFeedbackSystem';
 import WelfareBenefitsSimple from '../components/WelfareBenefitsSimple';
 import { 
   Baby, 
