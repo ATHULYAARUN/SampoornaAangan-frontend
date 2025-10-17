@@ -5,7 +5,7 @@ import { Baby, Mail, Lock, Eye, EyeOff, User } from 'lucide-react';
 import authService from '../services/authService';
 import FirstTimePasswordChange from '../components/Auth/FirstTimePasswordChange';
 import ForgotPassword from '../components/Auth/ForgotPassword';
-import GoogleSignIn from '../components/auth/GoogleSignIn';
+import GoogleSignIn from '../components/Auth/GoogleSignIn';
 import sessionManager from '../utils/sessionManager';
 
 const LoginPage = () => {
