@@ -32,8 +32,8 @@ const WelfareBenefitsSimple = () => {
       setError(null);
       
       console.log('🧪 Testing direct API calls...');
-      console.log('🔗 Schemes API URL: http://localhost:5005/api/schemes');
-      console.log('🔗 Enrollments API URL: http://localhost:5005/api/schemes/enrollments');
+  // console.log('Schemes API URL:', `${API_BASE_URL}/schemes`);
+  // console.log('Enrollments API URL:', `${API_BASE_URL}/schemes/enrollments`);
       
       // Fetch schemes
   const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://sampoornaaangan-backend.onrender.com/api';
@@ -219,7 +219,7 @@ Generated on: ${new Date().toLocaleDateString()}
       setApplying(true);
       
       // Call the enrollment API
-      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://sampoornaaangan-backend.onrender.com/api';
       const response = await fetch(`${API_BASE_URL}/schemes/enroll`, {
         method: 'POST',
         headers: {
