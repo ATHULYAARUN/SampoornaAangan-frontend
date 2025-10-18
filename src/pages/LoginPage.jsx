@@ -77,15 +77,17 @@ const LoginPage = () => {
 
     try {
       // Check if admin credentials (no role selection needed for admin)
-      if ((formData.email === ADMIN_CREDENTIALS.email || formData.email === ADMIN_CREDENTIALS.username) && 
-          formData.password === ADMIN_CREDENTIALS.password) {
-        
-        // Admin login
+      const isAdminLogin =
+        (formData.email === ADMIN_CREDENTIALS.email ||
+         formData.email === ADMIN_CREDENTIALS.username ||
+         formData.email === 'admin@angan.com');
+
+      if (isAdminLogin && formData.password) {
+        // Admin login (use identifier field for backend)
         const result = await authService.loginAdmin(formData.email, formData.password);
         if (result.success) {
           navigate('/admin-dashboard');
         }
-        
       } else if (formData.role && formData.email && formData.password) {
         
         // Regular user login
@@ -222,7 +224,7 @@ const LoginPage = () => {
                 )}
 
                 {/* Role Selection - Only show if not admin credentials */}
-                {!(formData.email === ADMIN_CREDENTIALS.email || formData.email === ADMIN_CREDENTIALS.username) && (
+                {!(formData.email === ADMIN_CREDENTIALS.email || formData.email === ADMIN_CREDENTIALS.username || formData.email === 'admin@angan.com') && (
                   <div>
                     <label className="block text-sm font-medium text-black mb-2">
                       Select Your Role
