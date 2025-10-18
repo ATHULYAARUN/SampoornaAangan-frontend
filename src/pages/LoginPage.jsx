@@ -137,7 +137,7 @@ const LoginPage = () => {
     });
   };
 
-  const handlePasswordChanged = (result) => {
+  const handlePasswordChanged = () => {
     setShowPasswordChange(false);
     setCurrentUser(null);
     // Navigate to appropriate dashboard
