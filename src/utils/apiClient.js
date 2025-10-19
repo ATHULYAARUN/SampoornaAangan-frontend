@@ -1,9 +1,14 @@
 import axios from 'axios';
 import sessionManager from './sessionManager';
 
+// Resolve API base URL: prefer env, fallback to production Render API
+const API_BASE = (import.meta && import.meta.env && import.meta.env.VITE_API_URL)
+  ? import.meta.env.VITE_API_URL
+  : 'https://sampoornaaangan-backend4.onrender.com/api';
+
 // Create axios instance with base configuration
 const apiClient = axios.create({
-  baseURL: '/api',
+  baseURL: API_BASE,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
